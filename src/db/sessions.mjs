@@ -26,44 +26,32 @@ export const LIMITE_PENDIENTES_BAR = 2;
 /** Segundos que se reserva el turno en exclusiva al cantante en Modo Bar antes de habilitar salto. */
 export const SEGUNDOS_DESBLOQUEO_BAR = 60;
 
-const PREFIJO_BAR = '[BAR] ';
-
-/**
- * Devuelve el límite de canciones pendientes según el modo de la sala.
- * @param {'casa'|'bar'|string} [modo]
- */
-export function limitePendientesDe(modo) {
+/** Máximo de canciones activas según el tipo de sala. */
+export function limitePendientesDe(modo = 'casa') {
   return modo === 'bar' ? LIMITE_PENDIENTES_BAR : LIMITE_PENDIENTES;
 }
 
-/**
- * Extrae el modo ('casa' | 'bar') y el nombre visible de la sesión sin requerir migración en Turso.
- * @param {string} nombreCrudo
- * @returns {{ modo: 'casa' | 'bar', name: string }}
- */
+const PREFIJO_BAR = '[BAR] ';
+const PREFIJO_FX = /^\[FX:(discreto|fiesta|epico)\] /;
+
+/** La configuración se almacena junto al modo en el nombre interno existente.
+ * Compatible con sesiones antiguas, sin modificar la estructura de Turso. */
 export function extraerModoYNombre(nombreCrudo) {
-  const texto = String(nombreCrudo ?? '');
-  if (texto.startsWith(PREFIJO_BAR)) {
-    return {
-      modo: 'bar',
-      name: texto.slice(PREFIJO_BAR.length).trim() || 'Karaoke Bar',
-    };
-  }
-  return {
-    modo: 'casa',
-    name: texto.trim() || 'Karaoke',
-  };
+  let texto = String(nombreCrudo ?? '');
+  const match = texto.match(PREFIJO_FX);
+  const espectaculo = match ? match[1] : 'fiesta';
+  if (match) texto = texto.slice(match[0].length);
+  const modo = texto.startsWith(PREFIJO_BAR) ? 'bar' : 'casa';
+  if (modo === 'bar') texto = texto.slice(PREFIJO_BAR.length);
+  return { modo, name: texto.trim() || (modo === 'bar' ? 'Karaoke Bar' : 'Karaoke'), espectaculo };
 }
 
-/**
- * Codifica el modo en el nombre almacenado en base de datos.
- * @param {string} nombre
- * @param {'casa'|'bar'|string} [modo]
- */
-function codificarNombreConModo(nombre, modo) {
+function codificarNombreConModo(nombre, modo, espectaculo = 'fiesta') {
   const { name: limpio } = extraerModoYNombre(nombre);
-  const base = limpio.slice(0, 70) || (modo === 'bar' ? 'Karaoke Bar' : 'Karaoke');
-  return modo === 'bar' ? `${PREFIJO_BAR}${base}` : base;
+  const modoFinal = modo === 'bar' ? 'bar' : 'casa';
+  const fx = ['discreto', 'fiesta', 'epico'].includes(espectaculo) ? espectaculo : 'fiesta';
+  const base = limpio.slice(0, 70) || (modoFinal === 'bar' ? 'Karaoke Bar' : 'Karaoke');
+  return `[FX:${fx}] ${modoFinal === 'bar' ? PREFIJO_BAR : ''}${base}`;
 }
 
 /* ------------------------------------------------------------------- tipos
@@ -77,6 +65,7 @@ function codificarNombreConModo(nombre, modo) {
  * @property {string}      code
  * @property {string}      name
  * @property {'casa'|'bar'} modo
+ * @property {'discreto'|'fiesta'|'epico'} espectaculo
  * @property {string}      status
  * @property {string}      created_at
  * @property {string|null} ended_at
@@ -195,8 +184,8 @@ export async function obtenerSesion(codigo) {
   const fila = await (await getDb()).prepare('select * from sessions where code = ?').get(code);
   if (!fila) return null;
   const base = plano(fila);
-  const { modo, name } = extraerModoYNombre(base.name);
-  return /** @type {Sesion} */ ({ ...base, name, modo });
+  const { modo, name, espectaculo } = extraerModoYNombre(base.name);
+  return /** @type {Sesion} */ ({ ...base, name, modo, espectaculo });
 }
 
 /**
@@ -218,8 +207,8 @@ export async function listarSesiones() {
     )
     .all();
   return planas(filas).map((f) => {
-    const { modo, name } = extraerModoYNombre(f.name);
-    return { ...f, name, modo };
+    const { modo, name, espectaculo } = extraerModoYNombre(f.name);
+    return { ...f, name, modo, espectaculo };
   });
 }
 
@@ -258,13 +247,26 @@ export async function cambiarModoSesion(codigo, modo) {
   if (!sesion) return { ok: false, error: 'SESION_NO_EXISTE' };
   if (modo !== 'casa' && modo !== 'bar') return { ok: false, error: 'MODO_INVALIDO' };
 
-  const nuevoNombre = codificarNombreConModo(sesion.name, modo);
+  const nuevoNombre = codificarNombreConModo(sesion.name, modo, sesion.espectaculo);
   await db.prepare('update sessions set name = ? where id = ?').run(nuevoNombre, sesion.id);
 
   if (modo === 'bar') {
     await reordenarColaBar(sesion.id);
   }
 
+  return { ok: true };
+}
+
+/** Actualiza el nivel de efectos para toda la sala (TV y panel, sin migración). */
+export async function cambiarEspectaculoSesion(codigo, espectaculo) {
+  if (!['discreto', 'fiesta', 'epico'].includes(espectaculo)) {
+    return { ok: false, error: 'ESPECTACULO_INVALIDO' };
+  }
+  const sesion = await obtenerSesion(codigo);
+  if (!sesion) return { ok: false, error: 'SESION_NO_EXISTE' };
+  if (sesion.status === 'finished') return { ok: false, error: 'SESION_CERRADA' };
+  await (await getDb()).prepare('update sessions set name = ? where id = ?')
+    .run(codificarNombreConModo(sesion.name, sesion.modo, espectaculo), sesion.id);
   return { ok: true };
 }
 

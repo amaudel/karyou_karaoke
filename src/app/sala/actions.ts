@@ -17,6 +17,7 @@ import {
   moverEnCola,
   cambiarEstadoSesion,
   cambiarModoSesion,
+  cambiarEspectaculoSesion,
 } from '@/db/sessions.mjs';
 import { cerrarTurnoConPuntuacion, aplaudir } from '@/db/puntuaciones.mjs';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
@@ -255,6 +256,15 @@ export async function cambiarModoSesionAction(formData: FormData) {
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
   redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
+}
+
+export async function cambiarEspectaculoAction(formData: FormData) {
+  const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  const nivel = String(formData.get('espectaculo') ?? '');
+  await cambiarEspectaculoSesion(code, nivel);
+  revalidatePath(`/sala/${code}/control`);
+  revalidatePath(`/sala/${code}/tv`);
+  redirect(`/sala/${code}/control`);
 }
 
 export async function terminarSesionAction(formData: FormData) {

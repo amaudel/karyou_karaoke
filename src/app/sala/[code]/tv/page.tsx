@@ -57,7 +57,7 @@ export default async function PantallaPage({ params }: Props) {
     await revanchaPendiente(sesion.id, enTurno.participant_id));
 
   if (sesion.status === 'finished') {
-    return <PodioFinal code={code} modo={estado.modo} ranking={ranking} rankingMesas={rankingMesas} />;
+    return <div data-espectaculo={sesion.espectaculo} className="karyou-tv-fx"><PodioFinal code={code} modo={estado.modo} ranking={ranking} rankingMesas={rankingMesas} /></div>;
   }
 
   /* ------------------------------------ nada en cola: pantalla de espera */
@@ -65,7 +65,7 @@ export default async function PantallaPage({ params }: Props) {
     return (
       <>
         <Refresco cada={2000} />
-        <PantallaEspera
+        <div data-espectaculo={sesion.espectaculo} className="karyou-tv-fx"><PantallaEspera
           code={code}
           modo={estado.modo}
           enlace={enlace}
@@ -74,7 +74,7 @@ export default async function PantallaPage({ params }: Props) {
           rankingMesas={rankingMesas}
           resultado={resultado}
           resultadoReciente={resultadoReciente}
-        />
+        /></div>
       </>
     );
   }
@@ -92,7 +92,7 @@ export default async function PantallaPage({ params }: Props) {
   return (
     <>
       <Refresco cada={2000} />
-      <EscenarioTV
+      <div data-espectaculo={sesion.espectaculo} className="karyou-tv-fx"><EscenarioTV
         code={code}
         cancion={cancion}
         estado={estado}
@@ -108,7 +108,7 @@ export default async function PantallaPage({ params }: Props) {
         onCantar={empezarTurnoAction.bind(null, code, enTurno.id)}
         onTerminar={terminarTurnoAction.bind(null, code, enTurno.id)}
         onDescartar={descartarTurnoRotoAction.bind(null, code, enTurno.id)}
-      />
+      /></div>
     </>
   );
 }

@@ -6,7 +6,7 @@ import { obtenerSesion, estadoSesion, normalizarCodigo } from '@/db/sessions.mjs
 import { rankingDeSesion, rankingMesasDeSesion } from '@/db/puntuaciones.mjs';
 import {
   moverAction, iniciarTurnoAction, cerrarTurnoAction,
-  cambiarModoSesionAction, terminarSesionAction,
+  cambiarModoSesionAction, cambiarEspectaculoAction, terminarSesionAction,
 } from '../../actions';
 import type { EstadoVista, FilaRankingVista, FilaMesaVista } from '../../tipos';
 
@@ -110,6 +110,29 @@ export default async function ControlSala({ params }: { params: Promise<{ code: 
           <aside className="space-y-4">
             <section className="rounded-2xl border border-purple-500/30 bg-purple-950/50 p-5">
               <h2 className="mb-3 text-lg font-black">⚙ Ajustes de sala</h2>
+              <div className="mb-5 space-y-3">
+                <p className="text-sm font-bold text-purple-100">✨ Intensidad del espectáculo en TV</p>
+                <div className="grid gap-2">
+                  {([
+                    ['discreto', '🌙 Discreto', 'Sin confeti ni luces continuas'],
+                    ['fiesta', '🎉 Fiesta', 'Brillos y celebración equilibrados'],
+                    ['epico', '🔥 Épico', 'Luces, confeti y gran celebración'],
+                  ] as const).map(([valor, titulo, descripcion]) => (
+                    <form key={valor} action={cambiarEspectaculoAction}>
+                      <input type="hidden" name="code" value={code} />
+                      <input type="hidden" name="espectaculo" value={valor} />
+                      <button type="submit" aria-pressed={sesion.espectaculo === valor}
+                        className={`w-full rounded-xl border p-3 text-left transition ${sesion.espectaculo === valor
+                          ? 'border-amber-400 bg-amber-500/15 text-white'
+                          : 'border-purple-400/20 bg-purple-900/20 text-purple-200 hover:bg-purple-800/40'}`}>
+                        <span className="block text-sm font-black">{titulo} {sesion.espectaculo === valor ? '✓' : ''}</span>
+                        <span className="mt-1 block text-xs opacity-75">{descripcion}</span>
+                      </button>
+                    </form>
+                  ))}
+                </div>
+                <p className="text-xs text-purple-300/70">Se guarda por sala y se refleja en la TV con su actualización automática. No cambia las notas ni el orden.</p>
+              </div>
               <form action={cambiarModoSesionAction} className="space-y-2">
                 <input type="hidden" name="code" value={code} />
                 <input type="hidden" name="origen" value="control" />
