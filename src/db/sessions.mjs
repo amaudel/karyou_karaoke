@@ -523,6 +523,15 @@ async function reordenarColaBar(sessionId) {
   const porMesa = new Map();
   for (const [clave, cantantes] of mesas) {
     const participantes = [...cantantes.entries()].sort((a, b) => a[1][0].id - b[1][0].id);
+    if (clave === claveMesa(fijada)) {
+      // El cantante de la canción fijada ya tuvo su oportunidad en esta vuelta.
+      const indice = participantes.findIndex(([id]) => id === fijada.participant_id);
+      if (indice >= 0) {
+        const [cantanteFijado] = participantes.splice(indice, 1);
+        cantanteFijado[1] = cantanteFijado[1].filter((f) => f.id !== fijada.id);
+        participantes.push(cantanteFijado);
+      }
+    }
     const orden = [];
     let pendientes = true;
     while (pendientes) {
