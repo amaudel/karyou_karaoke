@@ -26,6 +26,11 @@ export const LIMITE_PENDIENTES_BAR = 2;
 /** Segundos que se reserva el turno en exclusiva al cantante en Modo Bar antes de habilitar salto. */
 export const SEGUNDOS_DESBLOQUEO_BAR = 60;
 
+/** Máximo de canciones activas según el tipo de sala. */
+export function limitePendientesDe(modo = 'casa') {
+  return modo === 'bar' ? LIMITE_PENDIENTES_BAR : LIMITE_PENDIENTES;
+}
+
 const PREFIJO_BAR = '[BAR] ';
 const PREFIJO_FX = /^\[FX:(discreto|fiesta|epico)\] /;
 
