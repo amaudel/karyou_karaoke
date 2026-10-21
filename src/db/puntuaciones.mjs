@@ -397,7 +397,7 @@ export async function historialDeNoches(limite = 30) {
 /** Revancha pendiente del participante, derivada de la ultima actuacion valida. */
 export async function revanchaPendiente(sessionId, participantId) {
   const filas = await (await getDb()).prepare(
-    'select total, detail from scores where session_id = ? and participant_id = ? order by id desc limit 15',
+    'select total, detail from scores where session_id = ? and participant_id = ? order by id desc',
   ).all(Number(sessionId), Number(participantId));
   for (const fila of filas) {
     let detalle = {};
