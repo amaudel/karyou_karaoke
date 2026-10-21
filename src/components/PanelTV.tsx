@@ -1,17 +1,9 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
-import AccesosTV from './AccesosTV';
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  iniciarTurnoAction,
-  cerrarTurnoAction,
-  moverAction,
-  cambiarModoSesionAction,
-  terminarSesionAction,
-} from '@/app/sala/actions';
 import { despertar, silenciar } from '@/lib/sonido.mjs';
 import type { FilaVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
@@ -91,10 +83,6 @@ export default function PanelTV({
 
   return (
     <>
-      <div className="rounded-2xl border border-purple-500/30 bg-purple-950/30 p-3">
-        <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-purple-200">Administración de salas</p>
-        <AccesosTV compacto />
-      </div>
       {/* ------------------------------------------------ quién canta ahora */}
       <div className="rounded-2xl border border-pink-500/35 bg-gradient-to-br from-purple-900/45 via-purple-950/50 to-pink-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">
@@ -151,45 +139,6 @@ export default function PanelTV({
           <p className="mt-1 text-sm text-purple-300/70">Nadie ha pedido nada todavía.</p>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {sonando ? (
-            <form action={cerrarTurnoAction}>
-              <input type="hidden" name="code" value={code} />
-              <input type="hidden" name="queueItemId" value={sonando.id} />
-              <input type="hidden" name="resultado" value="skipped" />
-              <button
-                type="submit"
-                className="rounded-xl border border-purple-400/35 bg-purple-950/50 px-3.5 py-1.5 text-xs font-bold text-purple-200 transition hover:border-pink-400 hover:bg-pink-500/20 hover:text-white"
-              >
-                ⏭ Saltar turno
-              </button>
-            </form>
-          ) : (
-            esperando[0] && (
-              <>
-                <form action={iniciarTurnoAction}>
-                  <input type="hidden" name="code" value={code} />
-                  <input type="hidden" name="queueItemId" value={esperando[0].id} />
-                  <button
-                    type="submit"
-                    className="rounded-xl border border-purple-400/35 bg-purple-950/50 px-3.5 py-1.5 text-xs font-bold text-purple-200 transition hover:border-pink-400 hover:bg-pink-500/20 hover:text-white"
-                  >
-                    ▶ Poner en pantalla
-                  </button>
-                </form>
-                {onDescartar && (
-                  <button
-                    type="button"
-                    onClick={onDescartar}
-                    className="rounded-xl border border-amber-400/35 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-200 transition hover:border-amber-400 hover:bg-amber-500/20"
-                  >
-                    ⏭ Pasar ausente
-                  </button>
-                )}
-              </>
-            )
-          )}
-        </div>
       </div>
 
       {/* ----------------------------------------------------------- la cola */}
@@ -223,36 +172,6 @@ export default function PanelTV({
                       <span className="shrink-0 font-medium text-amber-300">· 🪑 {fila.mesa}</span>
                     )}
                   </div>
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  {indice > 0 && (
-                    <form action={moverAction}>
-                      <input type="hidden" name="code" value={code} />
-                      <input type="hidden" name="queueItemId" value={fila.id} />
-                      <input type="hidden" name="direccion" value="-1" />
-                      <button
-                        type="submit"
-                        aria-label={`Subir ${fila.song_title}`}
-                        className="rounded-lg border border-purple-500/30 bg-purple-900/40 px-2 py-0.5 text-xs font-bold text-purple-200 hover:bg-purple-800/60"
-                      >
-                        ↑
-                      </button>
-                    </form>
-                  )}
-                  {indice < enCola.length - 1 && (
-                    <form action={moverAction}>
-                      <input type="hidden" name="code" value={code} />
-                      <input type="hidden" name="queueItemId" value={fila.id} />
-                      <input type="hidden" name="direccion" value="1" />
-                      <button
-                        type="submit"
-                        aria-label={`Bajar ${fila.song_title}`}
-                        className="rounded-lg border border-purple-500/30 bg-purple-900/40 px-2 py-0.5 text-xs font-bold text-purple-200 hover:bg-purple-800/60"
-                      >
-                        ↓
-                      </button>
-                    </form>
-                  )}
                 </div>
               </li>
             ))}
@@ -340,25 +259,10 @@ export default function PanelTV({
             ⛶ Pantalla completa
           </button>
         )}
-        <form action={cambiarModoSesionAction}>
-          <input type="hidden" name="code" value={code} />
-          <input type="hidden" name="modo" value={modo === 'bar' ? 'casa' : 'bar'} />
-          <button
-            type="submit"
-            className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-3 py-2 font-bold text-amber-300 transition hover:bg-amber-900/40"
-          >
-            {modo === 'bar' ? 'Cambiar a 🏠 Casa' : 'Cambiar a 🍻 Bar'}
-          </button>
-        </form>
-        <form action={terminarSesionAction}>
-          <input type="hidden" name="code" value={code} />
-          <button
-            type="submit"
-            className="rounded-xl border border-red-500/30 bg-red-950/25 px-3 py-2 font-bold text-red-300 transition hover:bg-red-900/40"
-          >
-            Terminar noche
-          </button>
-        </form>
+        <Link href={`/sala/${code}/control`} target="_blank" rel="noopener noreferrer"
+          className="rounded-xl border border-purple-500/30 bg-purple-950/40 px-3 py-2 font-bold text-purple-200 hover:text-white hover:bg-purple-900/60">
+          ⚙ Panel del anfitrión ↗
+        </Link>
       </div>
     </>
   );
