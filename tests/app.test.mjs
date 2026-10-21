@@ -1528,3 +1528,28 @@ test('ranking de mesas agrupa nombres y excluye abandonos', async () => {
   assert.equal(ranking[1].canciones, 2);
   assert.equal(ranking[1].media, 93);
 });
+
+test('los niveles de espectáculo persisten por sala y sobreviven cambios Casa/Bar', async () => {
+  const { cambiarEspectaculoSesion, cambiarModoSesion, extraerModoYNombre } =
+    await import('../src/db/sessions.mjs');
+  const primera = await crearSesion('Fiesta de cumpleaños', 'bar');
+  const segunda = await crearSesion('Otra noche', 'casa');
+  assert.equal((await obtenerSesion(primera.code)).espectaculo, 'fiesta');
+  assert.equal((await obtenerSesion(segunda.code)).espectaculo, 'fiesta');
+  assert.deepEqual(extraerModoYNombre('[BAR] Karaoke clásico'),
+    { modo: 'bar', name: 'Karaoke clásico', espectaculo: 'fiesta' });
+  assert.equal((await cambiarEspectaculoSesion(primera.code, 'epico')).ok, true);
+  assert.equal((await obtenerSesion(primera.code)).espectaculo, 'epico');
+  await cambiarModoSesion(primera.code, 'casa');
+  const actual = await obtenerSesion(primera.code);
+  assert.equal(actual.modo, 'casa');
+  assert.equal(actual.name, 'Fiesta de cumpleaños');
+  assert.equal(actual.espectaculo, 'epico');
+  await cambiarModoSesion(primera.code, 'bar');
+  assert.equal((await obtenerSesion(primera.code)).espectaculo, 'epico');
+  assert.equal((await obtenerSesion(segunda.code)).espectaculo, 'fiesta');
+  assert.equal((await cambiarEspectaculoSesion(primera.code, 'intenso')).ok, false);
+  assert.equal((await obtenerSesion(primera.code)).espectaculo, 'epico');
+  assert.equal((await cambiarEspectaculoSesion(primera.code, 'discreto')).ok, true);
+  assert.equal((await obtenerSesion(primera.code)).espectaculo, 'discreto');
+});
