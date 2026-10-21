@@ -4,14 +4,14 @@ import EscenarioTV from '@/components/EscenarioTV';
 import PantallaEspera from '@/components/PantallaEspera';
 import Refresco from '@/components/Refresco';
 import { obtenerSesion, estadoSesion, normalizarCodigo } from '@/db/sessions.mjs';
-import { ultimoResultado, rankingDeSesion, contarAplausos } from '@/db/puntuaciones.mjs';
+import { ultimoResultado, rankingDeSesion, rankingMesasDeSesion, contarAplausos } from '@/db/puntuaciones.mjs';
 import { urlSala } from '@/lib/red.mjs';
 import {
   empezarTurnoAction,
   terminarTurnoAction,
   descartarTurnoRotoAction,
 } from '../../actions';
-import type { EstadoVista, ResultadoVista, FilaRankingVista } from '../../tipos';
+import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '../../tipos';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +36,7 @@ export default async function PantallaPage({ params }: Props) {
   const resultadoReciente = Boolean(crudo && crudo.segundos < SEGUNDOS_RECIENTE);
   const resultado: ResultadoVista | null = resultadoReciente ? crudo : null;
   const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
+  const rankingMesas = estado.modo === 'bar' ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
   const aplausos = estado.sonando ? await contarAplausos(estado.sonando.id) : 0;
   const oyentes = estado.participantes?.length ?? 0;
 
@@ -58,6 +59,8 @@ export default async function PantallaPage({ params }: Props) {
           enlace={enlace}
           qr={qr}
           ranking={ranking}
+        rankingMesas={rankingMesas}
+          rankingMesas={rankingMesas}
           resultado={resultado}
           resultadoReciente={resultadoReciente}
         />
