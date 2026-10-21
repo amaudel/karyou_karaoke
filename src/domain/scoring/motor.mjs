@@ -35,7 +35,7 @@
 import { crearAzar, semillaDesde, desviacionCentral } from './azar.mjs';
 
 /** Sube cuando cambia el algoritmo. Las puntuaciones guardadas lo registran. */
-export const VERSION_MOTOR = 1;
+export const VERSION_MOTOR = 2;
 
 /** Peso de cada componente. Se ajusta con el calibrador, no a ojo. */
 export const CONFIG_POR_DEFECTO = {
@@ -87,6 +87,8 @@ export const CONFIG_POR_DEFECTO = {
   maximo: 100,
   /** Rango máximo de separación de los subpuntajes respecto al total. */
   desvioSubpuntaje: 4,
+  moderarRacha: true,
+  perfiles: { normal: [25, 10, 15, 50], revancha: [10, 10, 15, 65], moderacion: [30, 15, 20, 35] },
 };
 
 /**
@@ -193,26 +195,53 @@ export function puntuar(entradas, config = CONFIG_POR_DEFECTO) {
   // --- 6. Bonus poco frecuente ---------------------------------------------
   const raro = azar() < config.bonusRaro.probabilidad ? azar() * config.bonusRaro.maximo : 0;
 
-  // --- Total ---------------------------------------------------------------
-  const bruto =
-    config.base +
-    finalizacion +
-    consistencia +
-    audiencia +
-    racha +
-    aporteMicrofono +
-    variacion +
-    raro;
-
-  let total = limitar(Math.round(bruto), config.minimo, config.maximo);
-
-  // Abandonar acota el resultado a la banda baja (50 a 69).
-  // Se escala proporcionalmente al avance cantado y varía con la semilla para que
-  // no quede estancado en un número idéntico de 69.
+  // --- Distribución recreativa calibrable por rangos ------------------------
+  // Las señales desplazan ligeramente los pesos sin destruir la distribución base.
+  // Los abandonos mantienen la escala histórica y no entran en las estadísticas.
+  const anteriores = Array.isArray(entradas.priorScores) ? entradas.priorScores : [];
+  const revancha = !abandono && anteriores.length > 0 && anteriores.at(-1) >= 55 && anteriores.at(-1) <= 64;
+  const rachaAlta = anteriores.length >= 3 && anteriores.slice(-3).every((n) => n >= 90);
+  const perfil = revancha ? 'revancha' : config.moderarRacha !== false && rachaAlta ? 'moderacion' : 'normal';
+  const basePesos = (config.perfiles ?? CONFIG_POR_DEFECTO.perfiles)[perfil];
+  const indice = limitar(
+    (ratio * 0.48) + (consistencia / Math.max(1, config.consistencia)) * 0.2 +
+    (proporcionAplauso ?? 0.5) * 0.25 + (previas > 0 ? 0.07 : 0.035),
+    0, 1,
+  );
+  // Ajuste pequeño y simétrico: señales neutras reproducen las cuotas objetivo.
+  const ajuste = (indice - 0.5) * 0.12;
+  const pesos = basePesos.map((peso, i) => peso * (1 + (i === 3 ? ajuste : i === 0 ? -ajuste : 0)));
+  const sumaPesos = pesos.reduce((a, b) => a + b, 0);
+  let boleto = azar() * sumaPesos;
+  let indiceRango = 3;
+  for (let i = 0; i < pesos.length; i += 1) {
+    boleto -= pesos[i];
+    if (boleto < 0) { indiceRango = i; break; }
+  }
+  const rangos = [[55, 64], [65, 77], [78, 89], [90, 100]];
+  const [minRango, maxRango] = rangos[indiceRango];
+  // Selección ponderada dentro de cada rango; el 100 ronda el 1 % global
+  // (2 % condicionado al rango excelente en perfil normal).
+  const pesosNotas = [];
+  for (let nota = minRango; nota <= maxRango; nota += 1) {
+    let peso = 1;
+    if (indiceRango === 3) {
+      peso = nota === 100 ? 0.22 : nota === 99 ? 0.6 :
+        nota >= 93 && nota <= 98 ? 2.1 : 0.85;
+    }
+    peso *= 1 + ((nota - (minRango + maxRango) / 2) / Math.max(1, maxRango - minRango)) * (indice - 0.5) * 0.6;
+    pesosNotas.push(peso);
+  }
+  let punto = azar() * pesosNotas.reduce((a, b) => a + b, 0);
+  let total = maxRango;
+  for (let i = 0; i < pesosNotas.length; i += 1) {
+    punto -= pesosNotas[i];
+    if (punto < 0) { total = minRango + i; break; }
+  }
   if (abandono) {
     const baseAbandono = config.minimo + Math.round((ratio / 0.6) * 14);
     const ruidoAbandono = Math.round((azar() - 0.4) * 8);
-    total = limitar(Math.min(total, baseAbandono + ruidoAbandono), config.minimo, 69);
+    total = limitar(baseAbandono + ruidoAbandono, config.minimo, 69);
   }
   // --- Subpuntajes ---------------------------------------------------------
   // Se derivan del total, no se calculan aparte. Así es imposible mostrar
@@ -262,6 +291,11 @@ export function puntuar(entradas, config = CONFIG_POR_DEFECTO) {
       variacion: Number(variacion.toFixed(2)),
       raro: Number(raro.toFixed(2)),
       abandono,
+      perfil: abandono ? 'abandono' : perfil,
+      rango: abandono ? null : indiceRango,
+      revanchaConsumida: revancha,
+      revanchaPendiente: !abandono && total >= 55 && total <= 64,
+      indiceRecreativo: Number(indice.toFixed(3)),
       dificultad: entradas.songDifficulty ?? 3,
       sinAudiencia: proporcionAplauso === null,
       sinMicrofono: voz === null,
