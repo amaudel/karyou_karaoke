@@ -242,7 +242,8 @@ export function puntuar(entradas, config = CONFIG_POR_DEFECTO) {
     // Aplausos y micrófono opcional influyen de forma visible dentro del rango,
     // sin cambiar la categoría que seleccionó la distribución calibrada.
     const ajusteAplausos = Math.round(((proporcionAplauso ?? 0.5) - 0.5) * 4);
-    total = limitar(total + ajusteAplausos + Math.round(aporteMicrofono), minRango, maxRango);
+    const techo = total === 100 ? 100 : Math.min(maxRango, 99);
+    total = limitar(total + ajusteAplausos + Math.round(aporteMicrofono), minRango, techo);
   }
   if (abandono) {
     const baseAbandono = config.minimo + Math.round((ratio / 0.6) * 14);
