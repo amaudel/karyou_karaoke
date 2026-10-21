@@ -3,8 +3,9 @@ import QRCode from 'qrcode';
 import EscenarioTV from '@/components/EscenarioTV';
 import PantallaEspera from '@/components/PantallaEspera';
 import Refresco from '@/components/Refresco';
+import PodioFinal from '@/components/PodioFinal';
 import { obtenerSesion, estadoSesion, normalizarCodigo } from '@/db/sessions.mjs';
-import { ultimoResultado, rankingDeSesion, rankingMesasDeSesion, contarAplausos } from '@/db/puntuaciones.mjs';
+import { ultimoResultado, rankingDeSesion, rankingMesasDeSesion, contarAplausos, revanchaPendiente, notaAnteriorRevancha } from '@/db/puntuaciones.mjs';
 import { urlSala } from '@/lib/red.mjs';
 import {
   empezarTurnoAction,
@@ -34,7 +35,12 @@ export default async function PantallaPage({ params }: Props) {
   // Solo se revela un resultado recién salido. Si no, cada recarga de la tele
   // repetiría la animación de una nota de hace media hora.
   const resultadoReciente = Boolean(crudo && crudo.segundos < SEGUNDOS_RECIENTE);
-  const resultado: ResultadoVista | null = resultadoReciente ? crudo : null;
+  const detalle = (() => { try { return JSON.parse(crudo?.detail || '{}'); } catch { return {}; } })();
+  const resultado: ResultadoVista | null = resultadoReciente && crudo ? {
+    ...crudo,
+    revanchaAnterior: detalle.perfil === 'revancha'
+      ? await notaAnteriorRevancha(sesion.id, crudo.participant_id, crudo.id) : null,
+  } : null;
   const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
   const rankingMesas = estado.modo === 'bar' ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
   const aplausos = estado.sonando ? await contarAplausos(estado.sonando.id) : 0;
@@ -47,6 +53,12 @@ export default async function PantallaPage({ params }: Props) {
   // Lo que se carga en el reproductor: lo que está sonando o, si nadie canta, la
   // primera de la cola, ya preparada.
   const enTurno = estado.sonando ?? estado.esperando[0] ?? null;
+  const tieneRevancha = Boolean(enTurno && sesion.status !== 'finished' &&
+    await revanchaPendiente(sesion.id, enTurno.participant_id));
+
+  if (sesion.status === 'finished') {
+    return <PodioFinal code={code} modo={estado.modo} ranking={ranking} rankingMesas={rankingMesas} />;
+  }
 
   /* ------------------------------------ nada en cola: pantalla de espera */
   if (!enTurno) {
@@ -88,6 +100,7 @@ export default async function PantallaPage({ params }: Props) {
         resultadoReciente={resultadoReciente}
         ranking={ranking}
         rankingMesas={rankingMesas}
+        tieneRevancha={tieneRevancha}
         aplausos={aplausos}
         oyentes={oyentes}
         qr={qr}
