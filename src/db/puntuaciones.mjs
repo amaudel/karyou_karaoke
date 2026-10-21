@@ -124,6 +124,11 @@ export async function cerrarTurnoConPuntuacion(codigo, queueItemId, telemetria =
   const id = Number(queueItemId);
   if (!Number.isInteger(id)) return { ok: false, error: 'TURNO_INVALIDO' };
 
+  // Validar pertenencia antes de devolver un resultado previamente guardado.
+  // Un ID de turno de otra sala nunca debe revelar la nota ni la identidad ajena.
+  const pertenencia = await db.prepare('select 1 as existe from queue_items where id = ? and session_id = ?').get(id, sesion.id);
+  if (!pertenencia) return { ok: false, error: 'TURNO_NO_EXISTE' };
+
   // Ya hay resultado: devolverlo en lugar de recalcular.
   const existente = await leerResultadoPorTurno(id);
   if (existente) return { ok: true, resultado: existente };
@@ -397,7 +402,7 @@ export async function historialDeNoches(limite = 30) {
 /** Revancha pendiente del participante, derivada de la ultima actuacion valida. */
 export async function revanchaPendiente(sessionId, participantId) {
   const filas = await (await getDb()).prepare(
-    'select total, detail from scores where session_id = ? and participant_id = ? order by id desc limit 15',
+    'select total, detail from scores where session_id = ? and participant_id = ? order by id desc',
   ).all(Number(sessionId), Number(participantId));
   for (const fila of filas) {
     let detalle = {};

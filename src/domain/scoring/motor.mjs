@@ -124,10 +124,10 @@ function limitar(valor, minimo, maximo) {
  * @param {number} total
  */
 function bandaDe(total) {
-  if (total < 70) return 'under';
-  if (total < 80) return 'normal';
+  if (total < 65) return 'under';
+  if (total < 78) return 'normal';
   if (total < 90) return 'good';
-  if (total < 97) return 'excellent';
+  if (total < 99) return 'excellent';
   return 'exceptional';
 }
 

@@ -836,6 +836,20 @@ test('cerrar un turno guarda la puntuación y es idempotente', async () => {
   );
 });
 
+test('no revela puntuaciones de turnos pertenecientes a otra sala', async () => {
+  const origen = await montarTurno('Sala con puntuacion');
+  await envejecerTurno(origen.item, 4);
+  const cierre = await cerrarTurnoConPuntuacion(origen.code, origen.item, {
+    posicionFinal: 190, terminoNatural: true,
+  });
+  assert.equal(cierre.ok, true);
+
+  const ajena = await crearSesion('Sala distinta');
+  const acceso = await cerrarTurnoConPuntuacion(ajena.code, origen.item, {});
+  assert.equal(acceso.ok, false);
+  assert.equal(acceso.error, 'TURNO_NO_EXISTE');
+});
+
 test('un turno cortado a los pocos segundos es un abandono', async () => {
   const { code, item } = await montarTurno('Cortado');
   // Sin envejecer: el servidor ve que pasaron cero segundos.
