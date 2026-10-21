@@ -1309,6 +1309,26 @@ test('Modo Bar: intercala la cola por rondas (Round-Robin) y limita a 2 cancione
   assert.equal(estadoCasa.limitePendientes, 3);
 });
 
+test('Modo Bar: alterna cantantes dentro de una mesa sin adelantar la canción visible', async () => {
+  const { code } = await crearSesion('Bar Equitativo', 'bar');
+  const ana = await unirseSesion(code, 'AnaMesa', undefined, 'Mesa 1');
+  const bea = await unirseSesion(code, 'BeaMesa', undefined, 'Mesa 1');
+  const carlos = await unirseSesion(code, 'CarlosMesa', undefined, 'Mesa 2');
+  const a1 = await pedirCancion(code, ana.token, 'wt-pY4mI2rs');
+  const a2 = await pedirCancion(code, ana.token, 'U5TiuzOkJEY');
+  const b1 = await pedirCancion(code, bea.token, 'K4HvVN1lVAQ');
+  const c1 = await pedirCancion(code, carlos.token, 'n5FzZJ0bpug');
+  assert.equal(a1.ok, true);
+  assert.equal(a2.ok, true);
+  assert.equal(b1.ok, true);
+  assert.equal(c1.ok, true);
+  const estado = await estadoSesion(code);
+  assert.deepEqual(estado.esperando.map((f) => f.nickname),
+    ['AnaMesa', 'CarlosMesa', 'BeaMesa', 'AnaMesa']);
+  assert.equal(estado.esperando[0].id, a1.queueItemId, 'la TV no cambia de cantante');
+  assert.equal(estado.limitePendientes, 2);
+});
+
 test('Modo Bar: reserva el botón Play al dueño durante 60s y luego permite saltar turno ausente', async () => {
   const { iniciarTurnoMovil, saltarTurnoInactivo } = await import('../src/db/sessions.mjs');
   const { getDb } = await import('../src/db/client.mjs');
