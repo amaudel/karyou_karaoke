@@ -1,6 +1,7 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
+import AccesosTV from './AccesosTV';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnimacionResultado from './AnimacionResultado';
@@ -112,6 +113,9 @@ export default function PantallaEspera({
           </div>
         </div>
 
+        {/* Acceso permanente a otras salas, visible también en la pantalla de espera */}
+        <AccesosTV compacto />
+
         {/* Controles rápidos de TV: Modo (Casa/Bar) + Activar Audio y Pantalla Completa */}
         <div className="flex flex-wrap items-center gap-2.5">
           <form action={cambiarModoSesionAction}>
@@ -159,6 +163,10 @@ export default function PantallaEspera({
           </div>
         </div>
       </header>
+
+      <p className="relative z-10 mt-3 rounded-xl border border-purple-400/20 bg-purple-950/40 px-4 py-2 text-xs text-purple-200/80">
+        Anfitrión: usa <strong>Crear nueva sala</strong> para organizar otra noche. Esta sala seguirá disponible en Mis salas.
+      </p>
 
       {/* ------------------------------------------------ Main Grid Layout (Left QR / Right Ranking) */}
       <div className="relative z-10 my-6 grid gap-8 lg:grid-cols-12 lg:items-stretch">
