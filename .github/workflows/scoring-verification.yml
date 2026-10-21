@@ -14,7 +14,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - run: npm ci
-      - run: npm test
-      - run: npm run typecheck
-      - run: npm run build
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm test
+      - run: corepack pnpm run typecheck
+      - run: corepack pnpm run build
