@@ -1,3 +1,4 @@
+import RankingMesas from '@/components/RankingMesas';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -23,7 +24,7 @@ import {
   BotonImportarUrl,
 } from '@/components/BotonesAccion';
 import FormularioBuscar from '@/components/FormularioBuscar';
-import { contarAplausos, yaAplaudio, rankingDeSesion, revanchaPendiente } from '@/db/puntuaciones.mjs';
+import { contarAplausos, yaAplaudio, rankingDeSesion, rankingMesasDeSesion, revanchaPendiente } from '@/db/puntuaciones.mjs';
 import { mensajeDeError } from '../mensajes';
 import {
   unirseAction,
@@ -36,7 +37,7 @@ import {
   saltarTurnoInactivoMovilAction,
   terminarTurnoMovilAction,
 } from '../actions';
-import type { EstadoVista, FilaRankingVista } from '../tipos';
+import type { EstadoVista, FilaRankingVista, FilaMesaVista } from '../tipos';
 
 export const dynamic = 'force-dynamic';
 
@@ -200,6 +201,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
     SEGUNDOS_DESBLOQUEO_BAR - (estado.segundosEnPantalla ?? 0),
   );
   const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
+  const rankingMesas = sesion.modo === 'bar' ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
   const miPuesto = ranking.find((r) => r.participant_id === quien.participante.id);
   const tengoRevancha = await revanchaPendiente(sesion.id, quien.participante.id);
 
