@@ -1,6 +1,7 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
+import AccesosTV from './AccesosTV';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnimacionResultado from './AnimacionResultado';
@@ -112,6 +113,9 @@ export default function PantallaEspera({
           </div>
         </div>
 
+        {/* Acceso permanente a otras salas, visible también en la pantalla de espera */}
+        <AccesosTV compacto />
+
         {/* Controles rápidos de TV: Modo (Casa/Bar) + Activar Audio y Pantalla Completa */}
         <div className="flex flex-wrap items-center gap-2.5">
           <form action={cambiarModoSesionAction}>
@@ -160,11 +164,15 @@ export default function PantallaEspera({
         </div>
       </header>
 
+      <p className="relative z-10 mt-3 rounded-xl border border-purple-400/20 bg-purple-950/40 px-4 py-2 text-xs text-purple-200/80">
+        Anfitrión: usa <strong>Crear nueva sala</strong> para organizar otra noche. Esta sala seguirá disponible en Mis salas.
+      </p>
+
       {/* ------------------------------------------------ Main Grid Layout (Left QR / Right Ranking) */}
-      <div className="relative z-10 my-6 grid gap-8 lg:grid-cols-12 lg:items-stretch">
+      <div className="relative z-10 my-4 grid gap-5 lg:grid-cols-12 lg:items-start">
         
         {/* ============================================== LEFT COLUMN: QR & JOIN UX */}
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-purple-500/25 bg-purple-950/20 p-6 text-center shadow-xl backdrop-blur-md lg:col-span-7">
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-purple-500/25 bg-purple-950/20 p-4 text-center shadow-xl backdrop-blur-md lg:col-span-7">
           
           {/* Eyebrow & Title */}
           <div className="mb-4">
@@ -177,13 +185,13 @@ export default function PantallaEspera({
           </div>
 
           {/* Large Padded QR Frame */}
-          <div className="my-2 inline-block rounded-3xl bg-white p-4 shadow-2xl shadow-purple-500/20 border-4 border-purple-300/20 transition-transform duration-300 hover:scale-105">
+          <div className="my-2 inline-block rounded-3xl bg-white p-3 shadow-2xl shadow-purple-500/20 border-4 border-purple-300/20 transition-transform duration-300 hover:scale-105">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qr}
               alt={`Código QR para unirse a la sala ${code}`}
-              width={240}
-              height={240}
+              width={192}
+              height={192}
               className="rounded-2xl"
             />
           </div>
@@ -218,7 +226,7 @@ export default function PantallaEspera({
         </div>
 
         {/* ============================================== RIGHT COLUMN: RANKING DE LA NOCHE */}
-        <div className="flex flex-col justify-between rounded-3xl border border-amber-500/30 bg-purple-950/30 p-6 shadow-xl backdrop-blur-md lg:col-span-5">
+        <div className="flex flex-col rounded-3xl border border-amber-500/30 bg-purple-950/30 p-5 shadow-xl backdrop-blur-md lg:col-span-5">
           
           <div>
             {/* Header */}

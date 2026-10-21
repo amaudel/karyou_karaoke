@@ -54,7 +54,7 @@ export default async function Home() {
 
         {/* ---------------------------------------------------- noches abiertas */}
         {sesiones.length > 0 && (
-          <section className="space-y-4">
+          <section id="salas-abiertas" className="scroll-mt-20 space-y-4">
             <h2 className="text-xl font-black text-white uppercase tracking-wide border-b border-purple-800/40 pb-3">
               Noches abiertas
             </h2>
@@ -106,11 +106,7 @@ export default async function Home() {
         )}
 
         {/* ------------------------------------------------------- nueva noche (solo PC / TV cuando ya hay salas abiertas) */}
-        <section
-          className={`${
-            sesiones.length > 0 ? 'hidden md:block' : 'block'
-          } rounded-3xl border border-pink-500/30 bg-gradient-to-br from-purple-900/40 to-pink-900/20 p-6 sm:p-8 backdrop-blur-md shadow-2xl`}
-        >
+        <section id="crear-sala" className="scroll-mt-24 rounded-3xl border border-pink-500/30 bg-gradient-to-br from-purple-900/40 to-pink-900/20 p-6 sm:p-8 backdrop-blur-md shadow-2xl">
           <h2 className="text-2xl font-black text-white uppercase tracking-wider">Empezar una noche</h2>
           <p className="mt-2 text-sm text-pink-200/70">
             Configura la sala según dónde uses el karaoke: en casa con amigos o en un bar con varias mesas.
