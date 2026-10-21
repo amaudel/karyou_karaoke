@@ -91,6 +91,7 @@ export default function PantallaEspera({
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-[500px] w-[500px] rounded-full bg-pink-500/15 blur-3xl" />
 
       {modo === 'bar' && rankingMesas.length > 0 && <div className="relative z-10 mb-4"><RankingMesas mesas={rankingMesas} compacto /></div>}
+      <div aria-hidden="true" className="karyou-show-spotlight pointer-events-none absolute -top-28 left-1/4 h-64 w-1/2 rounded-full bg-fuchsia-500/10 blur-3xl" />
       {/* ------------------------------------------------ Branding Header */}
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-purple-800/30 pb-4">
         <div className="flex items-center gap-3">
