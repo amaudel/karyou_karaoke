@@ -199,3 +199,43 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-show-spotlight, .karyou-show-halo, .karyou-shine::after,
   .karyou-score-reveal, .karyou-rank-enter { animation: none !important; }
 }
+
+/* Intensidad de show por sala. No afecta reproducción, cola ni resultados. */
+.karyou-tv-fx[data-espectaculo="discreto"] .animar-confeti,
+.karyou-tv-fx[data-espectaculo="discreto"] .animar-disco,
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-show-spotlight,
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-show-halo,
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-shine::after {
+  display: none !important;
+  animation: none !important;
+}
+.karyou-tv-fx[data-espectaculo="discreto"] .animar-neon,
+.karyou-tv-fx[data-espectaculo="discreto"] .animar-score-pop,
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-score-reveal,
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-rank-enter {
+  animation: none !important;
+}
+.karyou-tv-fx[data-espectaculo="epico"] .animar-confeti {
+  animation-duration: 2.2s !important;
+  filter: drop-shadow(0 0 8px rgba(251,191,36,.8));
+}
+.karyou-tv-fx[data-espectaculo="epico"] .karyou-show-halo {
+  opacity: .8;
+  filter: saturate(1.6);
+  animation-duration: 2.5s;
+}
+.karyou-tv-fx[data-espectaculo="epico"] .karyou-show-spotlight {
+  filter: saturate(1.4);
+  animation-duration: 7s;
+}
+.karyou-tv-fx[data-espectaculo="epico"] .karyou-shine::after {
+  animation-duration: 2.2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .karyou-tv-fx[data-espectaculo="epico"] .animar-confeti,
+  .karyou-tv-fx[data-espectaculo="epico"] .karyou-show-halo,
+  .karyou-tv-fx[data-espectaculo="epico"] .karyou-show-spotlight,
+  .karyou-tv-fx[data-espectaculo="epico"] .karyou-shine::after {
+    animation: none !important;
+  }
+}
