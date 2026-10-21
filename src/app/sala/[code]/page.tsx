@@ -118,6 +118,29 @@ export default async function SalaPage({ params, searchParams }: Props) {
                   className="w-full rounded-xl border border-purple-500/35 bg-purple-950/50 px-4 py-3.5 text-base text-white placeholder:text-purple-300/40 shadow-inner focus:border-pink-400 focus:outline-none"
                 />
               </div>
+
+              {sesion.modo === 'bar' && (
+                <div>
+                  <label
+                    htmlFor="mesa"
+                    className="block text-xs font-bold tracking-wider text-amber-300 uppercase mb-2"
+                  >
+                    🍻 ¿En qué mesa estás?
+                  </label>
+                  <input
+                    id="mesa"
+                    name="mesa"
+                    required
+                    maxLength={30}
+                    placeholder="Ej: Mesa 4, Barra, Terraza 2"
+                    className="w-full rounded-xl border border-amber-500/40 bg-purple-950/50 px-4 py-3.5 text-base text-white placeholder:text-purple-300/40 shadow-inner focus:border-amber-400 focus:outline-none"
+                  />
+                  <p className="mt-1.5 text-xs text-amber-200/70">
+                    Obligatorio en Modo Bar para identificar tu turno y avisarte cuando cantes.
+                  </p>
+                </div>
+              )}
+
               <BotonEntrar />
             </form>
           )}
@@ -201,10 +224,15 @@ export default async function SalaPage({ params, searchParams }: Props) {
                 {esModoBar ? '🍻 Modo Bar' : '🏠 Modo Casa'}
               </span>
             </div>
-            <p className="mt-0.5 text-sm text-purple-300/80">
-              Cantante:{' '}
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-purple-300/80">
+              <span>Cantante:</span>
               <strong className="font-extrabold text-pink-300">{quien.participante.nickname}</strong>
-            </p>
+              {quien.participante.mesa && (
+                <span className="rounded-md border border-amber-500/40 bg-amber-950/50 px-2 py-0.5 text-xs font-bold text-amber-300">
+                  🪑 {quien.participante.mesa}
+                </span>
+              )}
+            </div>
           </div>
           <span className="rounded-xl border border-purple-500/30 bg-purple-950/60 px-3 py-1.5 font-mono text-sm font-black tracking-[0.25em] text-amber-300">
             {code}
@@ -233,6 +261,11 @@ export default async function SalaPage({ params, searchParams }: Props) {
             <p className="text-sm text-purple-200/80">
               {estado.sonando.artist} ·{' '}
               <strong className="text-amber-300">{estado.sonando.nickname}</strong>
+              {estado.sonando.mesa && (
+                <span className="ml-1.5 inline-block text-xs font-semibold text-amber-300/90">
+                  (🪑 {estado.sonando.mesa})
+                </span>
+              )}
             </p>
 
             {/* El aplauso es la única señal de la nota que viene de personas de
@@ -297,10 +330,14 @@ export default async function SalaPage({ params, searchParams }: Props) {
                     </p>
                     <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                       🍻 Turno de {estado.esperando[0].nickname}
+                      {estado.esperando[0].mesa ? ` · 🪑 ${estado.esperando[0].mesa}` : ''}
                     </span>
                   </div>
                   <p className="text-xs text-purple-300/75">
                     Esperando a que <strong className="text-amber-300">{estado.esperando[0].nickname}</strong>{' '}
+                    {estado.esperando[0].mesa && (
+                      <span className="text-amber-300/90 font-medium">({estado.esperando[0].mesa}) </span>
+                    )}
                     le dé Play desde su celular. Si no aparece en{' '}
                     <span className="font-mono font-bold text-amber-300">{segundosParaDesbloqueo}s</span>,
                     podrás pasar al siguiente turno.
@@ -310,7 +347,8 @@ export default async function SalaPage({ params, searchParams }: Props) {
                 <div className="space-y-3">
                   <div>
                     <p className="font-bold text-amber-300">
-                      ⏳ {estado.esperando[0].nickname} lleva más de 1 min sin iniciar su turno
+                      ⏳ {estado.esperando[0].nickname}
+                      {estado.esperando[0].mesa ? ` (${estado.esperando[0].mesa})` : ''} lleva más de 1 min sin iniciar su turno
                     </p>
                     <p className="mt-0.5 text-xs text-purple-200/80">
                       {estado.esperando[0].song_title} · Puedes pasar al siguiente cantante o iniciar la pista.
@@ -337,6 +375,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
                     </p>
                     <p className="text-xs text-purple-300/70">
                       Turno de <strong className="text-amber-300">{estado.esperando[0].nickname}</strong>
+                      {estado.esperando[0].mesa ? ` (${estado.esperando[0].mesa})` : ''}
                     </p>
                   </div>
                   <form action={iniciarTurnoMovilAction} className="shrink-0">
@@ -531,7 +570,12 @@ export default async function SalaPage({ params, searchParams }: Props) {
                         <div className="mt-0.5 line-clamp-1 text-xs text-purple-200/75">
                           <strong className={mia ? 'text-pink-300' : 'text-purple-200'}>
                             {mia ? 'Tú' : fila.nickname}
-                          </strong>{' '}
+                          </strong>
+                          {fila.mesa && (
+                            <span className="ml-1 text-[11px] font-semibold text-amber-300">
+                              (🪑 {fila.mesa})
+                            </span>
+                          )}{' '}
                           · {fila.artist}
                         </div>
                       </div>

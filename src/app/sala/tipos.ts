@@ -20,6 +20,7 @@ export type FilaVista = {
   video_id: string;
   participant_id: number;
   nickname: string;
+  mesa?: string | null;
   song_title: string;
   video_title: string;
   artist: string;
@@ -31,6 +32,7 @@ export type FilaVista = {
 export type ParticipanteVista = {
   id: number;
   nickname: string;
+  mesa?: string | null;
 };
 
 /** Lo que devuelve `estadoSesion`. */
@@ -46,7 +48,7 @@ export type EstadoVista = {
 
 /** Lo que devuelve `unirseSesion`. */
 export type ResultadoAlta =
-  | { ok: true; participantId: number; token: string; nickname: string }
+  | { ok: true; participantId: number; token: string; nickname: string; mesa?: string | null }
   | { ok: false; error: string };
 
 /** Un resultado ya calculado, para pintarlo. */

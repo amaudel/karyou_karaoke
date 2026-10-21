@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import {
   normalizarCodigo,
   crearSesion,
+  obtenerSesion,
   unirseSesion,
   pedirCancion,
   cancelarPeticion,
@@ -50,9 +51,15 @@ export async function crearSesionAction(formData: FormData) {
 export async function unirseAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
   const apodo = String(formData.get('apodo') ?? '').trim();
+  const mesa = String(formData.get('mesa') ?? '').trim();
+
+  const sesion = await obtenerSesion(code);
+  if (sesion?.modo === 'bar' && !mesa) {
+    redirect(`/sala/${code}?error=MESA_REQUERIDA`);
+  }
 
   const tokenActual = await tokenDe(code);
-  const res = await unirseSesion(code, apodo, tokenActual);
+  const res = await unirseSesion(code, apodo, tokenActual, mesa || undefined);
   if (!res.ok) {
     redirect(`/sala/${code}?error=${encodeURIComponent(res.error)}`);
   }

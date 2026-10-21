@@ -12,6 +12,7 @@ export const MENSAJES: Record<string, string> = {
   SESION_NO_ACTIVA: 'La sala está en pausa.',
   APODO_VACIO: 'Escribe un apodo.',
   APODO_OCUPADO: 'Ese apodo ya está en uso en esta sala. Prueba con otro.',
+  MESA_REQUERIDA: 'En Modo Bar debes ingresar el nombre o número de tu mesa para poder gestionar los turnos.',
   NO_IDENTIFICADO: 'Vuelve a entrar: se perdió tu identificación.',
   PISTA_INVALIDA: 'Esa pista no es válida.',
   PISTA_NO_DISPONIBLE: 'Esa pista no se puede reproducir. Prueba otra.',

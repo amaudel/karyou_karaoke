@@ -1334,6 +1334,34 @@ test('Modo Bar: reserva el botón Play al dueño durante 60s y luego permite sal
   assert.equal(estadoFinal.esperando[0].nickname, 'Luis');
 });
 
+test('Modo Bar: asigna mesa a los participantes y la expone en cola y estado de sala', async () => {
+  const { crearSesion, unirseSesion, pedirCancion, estadoSesion } = await import('../src/db/sessions.mjs');
+  const { code } = await crearSesion('Bar Tropical', 'bar');
+
+  const p1 = await unirseSesion(code, 'Carlos', undefined, 'Mesa 4');
+  assert.equal(p1.ok, true);
+  assert.equal(p1.mesa, 'Mesa 4');
+
+  const p2 = await unirseSesion(code, 'Sofia', undefined, 'Barra VIP');
+  assert.equal(p2.ok, true);
+  assert.equal(p2.mesa, 'Barra VIP');
+
+  // Pedir canciones
+  const c1 = await pedirCancion(code, p1.token, 'wt-pY4mI2rs');
+  const c2 = await pedirCancion(code, p2.token, 'U5TiuzOkJEY');
+  assert.equal(c1.ok, true);
+  assert.equal(c2.ok, true);
+
+  const estado = await estadoSesion(code);
+  assert.equal(estado.cola[0].nickname, 'Carlos');
+  assert.equal(estado.cola[0].mesa, 'Mesa 4');
+  assert.equal(estado.cola[1].nickname, 'Sofia');
+  assert.equal(estado.cola[1].mesa, 'Barra VIP');
+
+  const partCarlos = estado.participantes.find((p) => p.nickname === 'Carlos');
+  assert.equal(partCarlos.mesa, 'Mesa 4');
+});
+
 // ==================================================== Fase 6: Favoritos y oEmbed
 
 test('Fase 6: extraerVideoId reconoce enlaces watch, youtu.be, shorts, embed e ID directo', async () => {

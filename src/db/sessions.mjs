@@ -86,6 +86,8 @@ function codificarNombreConModo(nombre, modo) {
  * @property {number} session_id
  * @property {string} token
  * @property {string} nickname
+ * @property {string|null} [table_name]
+ * @property {string|null} [mesa]
  * @property {string} joined_at
  *
  * @typedef {object} FilaCola
@@ -97,6 +99,8 @@ function codificarNombreConModo(nombre, modo) {
  * @property {string|null} started_at
  * @property {number}      participant_id
  * @property {string}      nickname
+ * @property {string|null} [table_name]
+ * @property {string|null} [mesa]
  * @property {string}      song_title
  * @property {string}      artist
  * @property {string}      video_title
@@ -128,7 +132,7 @@ function codificarNombreConModo(nombre, modo) {
  * estrechar la unión: sin esto, `if (!res.ok)` no garantiza que `token` exista.
  *
  * @typedef {{ ok: true } | { ok: false, error: string }} Resultado
- * @typedef {{ ok: true, participantId: number, token: string, nickname: string }
+ * @typedef {{ ok: true, participantId: number, token: string, nickname: string, mesa?: string | null }
  *         | { ok: false, error: string }} ResultadoAlta
  * @typedef {{ ok: true, queueItemId: number } | { ok: false, error: string }} ResultadoPeticion
  */
@@ -274,13 +278,13 @@ export async function cambiarModoSesion(codigo, modo) {
 async function participantePorToken(sessionId, token) {
   if (!token) return null;
   const fila = await (await getDb())
-    .prepare('select * from participants where session_id = ? and token = ?')
+    .prepare('select id, session_id, token, nickname, table_name, table_name as mesa, joined_at, last_seen_at from participants where session_id = ? and token = ?')
     .get(sessionId, String(token));
   return fila ? /** @type {Participante} */ (plano(fila)) : null;
 }
 
 /**
- * Une a alguien a la sesión. No hay cuentas: solo un apodo.
+ * Une a alguien a la sesión. No hay cuentas: solo un apodo (y mesa en Modo Bar).
  *
  * Si el apodo ya está en uso se rechaza en lugar de reutilizar la identidad del
  * otro. Devolver el token ajeno permitiría a cualquiera cancelar peticiones que no
@@ -289,9 +293,10 @@ async function participantePorToken(sessionId, token) {
  * @param {string} codigo
  * @param {string} apodo
  * @param {string} [tokenActual]
+ * @param {string} [mesa]
  * @returns {Promise<ResultadoAlta>}
  */
-export async function unirseSesion(codigo, apodo, tokenActual = undefined) {
+export async function unirseSesion(codigo, apodo, tokenActual = undefined, mesa = undefined) {
   const db = await getDb();
   const sesion = await obtenerSesion(codigo);
   if (!sesion) return { ok: false, error: 'SESION_NO_EXISTE' };
@@ -300,6 +305,8 @@ export async function unirseSesion(codigo, apodo, tokenActual = undefined) {
   const limpio = String(apodo ?? '').trim().slice(0, 24);
   if (limpio.length === 0) return { ok: false, error: 'APODO_VACIO' };
 
+  const limpioMesa = mesa ? String(mesa).trim().slice(0, 30) : null;
+
   const existente = await db
     .prepare('select * from participants where session_id = ? and lower(nickname) = lower(?)')
     .get(sesion.id, limpio);
@@ -307,17 +314,35 @@ export async function unirseSesion(codigo, apodo, tokenActual = undefined) {
   if (existente) {
     const p = plano(existente);
     if (tokenActual && p.token === tokenActual) {
-      return { ok: true, participantId: Number(p.id), token: p.token, nickname: p.nickname };
+      if (limpioMesa !== null && p.table_name !== limpioMesa) {
+        await db
+          .prepare('update participants set table_name = ? where id = ?')
+          .run(limpioMesa, p.id);
+        p.table_name = limpioMesa;
+      }
+      return {
+        ok: true,
+        participantId: Number(p.id),
+        token: p.token,
+        nickname: p.nickname,
+        mesa: p.table_name || undefined,
+      };
     }
     return { ok: false, error: 'APODO_OCUPADO' };
   }
 
   const token = randomBytes(16).toString('hex');
   const res = await db
-    .prepare('insert into participants (session_id, token, nickname) values (?, ?, ?)')
-    .run(sesion.id, token, limpio);
+    .prepare('insert into participants (session_id, token, nickname, table_name) values (?, ?, ?, ?)')
+    .run(sesion.id, token, limpio, limpioMesa);
 
-  return { ok: true, participantId: Number(res.lastInsertRowid), token, nickname: limpio };
+  return {
+    ok: true,
+    participantId: Number(res.lastInsertRowid),
+    token,
+    nickname: limpio,
+    mesa: limpioMesa || undefined,
+  };
 }
 
 /**
@@ -342,7 +367,7 @@ export async function listarParticipantes(sessionId) {
   /** @type {Participante[]} */
   const filas = await (await getDb())
     .prepare(
-      `select id, session_id, nickname, joined_at
+      `select id, session_id, nickname, table_name as mesa, joined_at
          from participants where session_id = ?
         order by joined_at asc`,
     )
@@ -474,9 +499,10 @@ async function reordenarColaBar(sessionId) {
   const db = await getDb();
   const filas = await db
     .prepare(
-      `select id, participant_id, status, position from queue_items
-        where session_id = ? and status in ('waiting', 'singing')
-        order by case when status = 'singing' then 0 else 1 end, position asc, id asc`,
+      `select q.id, q.participant_id, p.table_name, q.status, q.position from queue_items q
+        join participants p on p.id = q.participant_id
+        where q.session_id = ? and q.status in ('waiting', 'singing')
+        order by case when status = 'singing' then 0 else 1 end, q.position asc, q.id asc`,
     )
     .all(sessionId);
 
@@ -486,12 +512,15 @@ async function reordenarColaBar(sessionId) {
   // La primera fila es la que está sonando o la que ya está preparada en la TV:
   // nunca se le quita de la pantalla al cantante que ya tiene su turno listo.
   const fijada = filas[0];
-  vistos.set(fijada.participant_id, 1);
+  const claveFijada =
+    (fijada.table_name && fijada.table_name.trim().toLowerCase()) || `p_${fijada.participant_id}`;
+  vistos.set(claveFijada, 1);
 
   const resto = filas.slice(1).sort((a, b) => a.id - b.id);
   const conRonda = resto.map((f) => {
-    const ronda = (vistos.get(f.participant_id) ?? 0) + 1;
-    vistos.set(f.participant_id, ronda);
+    const clave = (f.table_name && f.table_name.trim().toLowerCase()) || `p_${f.participant_id}`;
+    const ronda = (vistos.get(clave) ?? 0) + 1;
+    vistos.set(clave, ronda);
     return { ...f, ronda };
   });
 
@@ -734,6 +763,7 @@ const SQL_COLA = `
     q.requested_at, q.started_at,
     p.id    as participant_id,
     p.nickname,
+    p.table_name as mesa,
     pi.song_title, pi.artist, pi.video_title,
     pi.duration_seconds,
     ch.name as channel_name

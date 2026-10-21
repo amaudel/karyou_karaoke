@@ -110,13 +110,21 @@ export default function PanelTV({
 
         {enPantalla ? (
           <>
-            <p className="mt-1.5 text-2xl font-black text-white">{enPantalla.nickname}</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <p className="text-2xl font-black text-white">{enPantalla.nickname}</p>
+              {enPantalla.mesa && (
+                <span className="rounded-full border border-amber-400/40 bg-amber-500/20 px-2.5 py-0.5 text-xs font-bold text-amber-300">
+                  🪑 {enPantalla.mesa}
+                </span>
+              )}
+            </div>
             <p className="mt-0.5 truncate text-sm font-semibold text-purple-200/85">
               {enPantalla.song_title} · <span className="text-purple-300/70">{enPantalla.artist}</span>
             </p>
             {!sonando && modo === 'bar' && segundosEnPantalla >= 40 && (
               <p className="mt-2 rounded-xl border border-amber-500/40 bg-amber-950/40 px-2.5 py-1.5 text-xs font-bold text-amber-300">
-                ⏳ Esperando a {enPantalla.nickname} ({segundosEnPantalla}s). A los 60s se habilita
+                ⏳ Esperando a {enPantalla.nickname}
+                {enPantalla.mesa ? ` (${enPantalla.mesa})` : ''} ({segundosEnPantalla}s). A los 60s se habilita
                 pasar turno desde cualquier celular.
               </p>
             )}
@@ -191,7 +199,12 @@ export default function PanelTV({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-bold text-white">{fila.song_title}</div>
-                  <div className="truncate text-[11px] text-purple-300/75">{fila.nickname}</div>
+                  <div className="flex items-center gap-1.5 truncate text-[11px] text-purple-300/75">
+                    <span className="truncate">{fila.nickname}</span>
+                    {fila.mesa && (
+                      <span className="shrink-0 font-medium text-amber-300">· 🪑 {fila.mesa}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   {indice > 0 && (
