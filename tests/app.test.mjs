@@ -1499,8 +1499,9 @@ test('Fase 6: importarPistaPorUrl valida con oEmbed, incorpora al pool y rechaza
 
 
 
-test('ranking de mesas excluye abandonos y exige tres actuaciones para podio', async () => {
+test('ranking de mesas agrupa nombres y excluye abandonos', async () => {
   const { rankingMesasDeSesion } = await import('../src/db/puntuaciones.mjs');
+  const { identificar } = await import('../src/db/sessions.mjs');
   const { getDb } = await import('../src/db/client.mjs');
   const { code } = await crearSesion('Competencia mesas', 'bar');
   const sesion = await obtenerSesion(code);
@@ -1508,17 +1509,22 @@ test('ranking de mesas excluye abandonos y exige tres actuaciones para podio', a
   const bea = await unirseSesion(code, 'BeaRanking', undefined, 'mesa uno');
   const carlos = await unirseSesion(code, 'CarlosRanking', undefined, 'Mesa Dos');
   const db = await getDb();
-  // Fixture directo: comprobar agregación sin depender del reproductor.
-  const participantes = [ana, bea, carlos];
-  const notas = [[90, '{}'], [95, '{}'], [100, '{}'], [99, '{"abandono":true}']];
-  for (let i = 0; i < notas.length; i++) {
-    const participante = i === 0 ? participantes[0] : i === 1 ? participantes[1] : participantes[2];
-    const identidad = await identificar(code, participante.token);
+  const datos = [
+    [ana, 90, '{}', 'wt-pY4mI2rs'],
+    [bea, 95, '{}', 'U5TiuzOkJEY'],
+    [carlos, 100, '{}', 'K4HvVN1lVAQ'],
+    [carlos, 99, '{"abandono":true}', 'n5FzZJ0bpug'],
+  ];
+  for (const [indice, [usuario, nota, detalle, video]] of datos.entries()) {
+    const identidad = await identificar(code, usuario.token);
+    const turno = await db.prepare(
+      'insert into queue_items (session_id, participant_id, video_id, position) values (?, ?, ?, ?)'
+    ).run(sesion.id, identidad.participante.id, video, indice + 1);
     await db.prepare(
       `insert into scores (session_id, participant_id, queue_item_id, video_id, total, rhythm, energy, interpretation, tier, engine_version, seed, inputs, detail)
        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(sesion.id, identidad.participante.id, 900000 + i, 'wt-pY4mI2rs',
-      notas[i][0], 80, 80, 80, 'excellent', 2, 'ranking-' + i, '{}', notas[i][1]);
+    ).run(sesion.id, identidad.participante.id, Number(turno.lastInsertRowid), video,
+      nota, 80, 80, 80, 'excellent', 2, 'ranking-' + indice, '{}', detalle);
   }
   const ranking = await rankingMesasDeSesion(sesion.id);
   assert.equal(ranking.length, 2);
