@@ -1,5 +1,7 @@
 'use client';
 
+import RankingMesas from './RankingMesas';
+
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -10,7 +12,7 @@ import {
   terminarSesionAction,
 } from '@/app/sala/actions';
 import { despertar, silenciar } from '@/lib/sonido.mjs';
-import type { FilaVista, FilaRankingVista } from '@/app/sala/tipos';
+import type { FilaVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
 /**
  * El panel lateral de la pantalla de TV: quién canta, la cola, el ranking y el QR.
@@ -27,6 +29,7 @@ export default function PanelTV({
   aplausos,
   oyentes,
   ranking,
+  rankingMesas,
   qr,
   enlace,
   onDescartar,
@@ -40,6 +43,7 @@ export default function PanelTV({
   aplausos: number;
   oyentes: number;
   ranking: FilaRankingVista[];
+  rankingMesas: FilaMesaVista[];
   qr: string;
   enlace: string;
   onDescartar?: () => void;
@@ -241,6 +245,8 @@ export default function PanelTV({
           </ol>
         )}
       </div>
+
+      {modo === 'bar' && <RankingMesas mesas={rankingMesas} compacto />}
 
       {/* ---------------------------------------------------------- ranking */}
       {ranking.length > 0 && (

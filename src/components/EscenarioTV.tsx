@@ -5,7 +5,7 @@ import KaraokeStage, { type CancionEnEscenario, type Telemetria } from './Karaok
 import PanelTV from './PanelTV';
 import AnimacionResultado from './AnimacionResultado';
 import { despertar } from '@/lib/sonido.mjs';
-import type { EstadoVista, ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
+import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
 /** Segundos tras los cuales la TV salta sola un turno desatendido en Modo Bar si hay cola detrás. */
 const SEGUNDOS_AUTOSALTO_TV_BAR = 75;
@@ -28,6 +28,7 @@ export default function EscenarioTV({
   resultado,
   resultadoReciente,
   ranking,
+  rankingMesas,
   aplausos,
   oyentes,
   qr,
@@ -42,6 +43,7 @@ export default function EscenarioTV({
   resultado: ResultadoVista | null;
   resultadoReciente: boolean;
   ranking: FilaRankingVista[];
+  rankingMesas: FilaMesaVista[];
   aplausos: number;
   oyentes: number;
   qr: string;
@@ -149,6 +151,7 @@ export default function EscenarioTV({
           aplausos={aplausos}
           oyentes={oyentes}
           ranking={ranking}
+          rankingMesas={rankingMesas}
           qr={qr}
           enlace={enlace}
           onDescartar={onDescartar}

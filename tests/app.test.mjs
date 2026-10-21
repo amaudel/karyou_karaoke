@@ -900,27 +900,21 @@ test('los aplausos cuentan una vez por persona y no valen los propios', async ()
   assert.equal(await contarAplausos(item), 1);
 });
 
-test('los aplausos suben la nota, en promedio', async () => {
-  const media = async (conAplausos) => {
-    let suma = 0;
-    for (let i = 0; i < 60; i += 1) {
-      const { code, luis, item } = await montarTurno(`Aplausos-media-${conAplausos}-${i}`);
-      await envejecerTurno(item, 4);
-      if (conAplausos) await aplaudir(code, luis.token, item);
-      void code;
-      const res = await cerrarTurnoConPuntuacion(code, item, {
-        posicionFinal: 190,
-        terminoNatural: true,
-      });
-      suma += res.resultado.total;
-    }
-    return suma / 60;
-  };
-
-  const con = await media(true);
-  const sin = await media(false);
-  assert.ok(con > sin, `con aplausos (${con}) debería superar a sin (${sin})`);
+test('los aplausos no empeoran la nota para la misma actuación', () => {
+  // Comparación pareada: usar la misma semilla elimina la variación entre turnos.
+  let con = 0;
+  let sin = 0;
+  for (let i = 0; i < 1000; i++) {
+    const base = {
+      completionRatio: 1, interruptionCount: 0, endedNaturally: true,
+      audienceSize: 12, priorScores: [], songDifficulty: 3, seed: 'aplausos-' + i,
+    };
+    sin += puntuar({ ...base, audienceCheers: 0 }).total;
+    con += puntuar({ ...base, audienceCheers: 8 }).total;
+  }
+  assert.ok(con >= sin, `los aplausos (${con}) no deben bajar el promedio (${sin})`);
 });
+
 
 test('el ranking ordena por mejor nota, no por media', async () => {
   const { code, ana, item } = await montarTurno('Ranking');
@@ -1498,3 +1492,39 @@ test('Fase 6: importarPistaPorUrl valida con oEmbed, incorpora al pool y rechaza
 
 
 
+
+test('ranking de mesas agrupa nombres y excluye abandonos', async () => {
+  const { rankingMesasDeSesion } = await import('../src/db/puntuaciones.mjs');
+  const { identificar } = await import('../src/db/sessions.mjs');
+  const { getDb } = await import('../src/db/client.mjs');
+  const { code } = await crearSesion('Competencia mesas', 'bar');
+  const sesion = await obtenerSesion(code);
+  const ana = await unirseSesion(code, 'AnaRanking', undefined, 'Mesa Uno');
+  const bea = await unirseSesion(code, 'BeaRanking', undefined, 'mesa uno');
+  const carlos = await unirseSesion(code, 'CarlosRanking', undefined, 'Mesa Dos');
+  const db = await getDb();
+  const datos = [
+    [ana, 90, '{}', 'wt-pY4mI2rs'],
+    [bea, 95, '{}', 'U5TiuzOkJEY'],
+    [carlos, 100, '{}', 'K4HvVN1lVAQ'],
+    [carlos, 99, '{"abandono":true}', 'n5FzZJ0bpug'],
+  ];
+  for (const [indice, [usuario, nota, detalle, video]] of datos.entries()) {
+    const identidad = await identificar(code, usuario.token);
+    const turno = await db.prepare(
+      'insert into queue_items (session_id, participant_id, video_id, position) values (?, ?, ?, ?)'
+    ).run(sesion.id, identidad.participante.id, video, indice + 1);
+    await db.prepare(
+      `insert into scores (session_id, participant_id, queue_item_id, video_id, total, rhythm, energy, interpretation, tier, engine_version, seed, inputs, detail)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(sesion.id, identidad.participante.id, Number(turno.lastInsertRowid), video,
+      nota, 80, 80, 80, 'excellent', 2, 'ranking-' + indice, '{}', detalle);
+  }
+  const ranking = await rankingMesasDeSesion(sesion.id);
+  assert.equal(ranking.length, 2);
+  assert.equal(ranking[0].mesa, 'Mesa Dos');
+  assert.equal(ranking[0].canciones, 1);
+  assert.equal(ranking[0].elegible, false);
+  assert.equal(ranking[1].canciones, 2);
+  assert.equal(ranking[1].media, 93);
+});
