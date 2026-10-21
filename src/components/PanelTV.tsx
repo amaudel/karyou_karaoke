@@ -1,6 +1,7 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
+import AccesosTV from './AccesosTV';
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -90,6 +91,10 @@ export default function PanelTV({
 
   return (
     <>
+      <div className="rounded-2xl border border-purple-500/30 bg-purple-950/30 p-3">
+        <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-purple-200">Administración de salas</p>
+        <AccesosTV compacto />
+      </div>
       {/* ------------------------------------------------ quién canta ahora */}
       <div className="rounded-2xl border border-pink-500/35 bg-gradient-to-br from-purple-900/45 via-purple-950/50 to-pink-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">
