@@ -205,7 +205,7 @@ export async function cerrarTurnoConPuntuacion(codigo, queueItemId, telemetria =
     (await db.prepare('select count(*) as n from participants where session_id = ?').get(sesion.id)).n,
   );
   const previas = await db
-    .prepare('select total from scores where participant_id = ? and session_id = ?')
+    .prepare('select total, detail from scores where participant_id = ? and session_id = ? order by id asc')
     // Los DOS parámetros. Faltaba `sesion.id`, y node:sqlite no avisa cuando faltan
     // argumentos: deja el marcador en NULL en silencio, así que `session_id = NULL`
     // nunca es verdadero y la consulta devolvía siempre cero filas.
@@ -219,7 +219,7 @@ export async function cerrarTurnoConPuntuacion(codigo, queueItemId, telemetria =
     endedNaturally: llegoAlFinal,
     audienceCheers: aplausos,
     audienceSize: oyentes,
-    priorScores: previas.map((f) => Number(f.total)),
+    priorScores: previas.filter((f) => { try { return !JSON.parse(f.detail || '{}').abandono; } catch { return true; } }).map((f) => Number(f.total)),
     songDifficulty: 3,
     // La semilla ata el resultado a este turno concreto: el mismo cantante y la
     // misma canción en otro turno dan otro resultado, porque es otra actuación.
@@ -280,7 +280,7 @@ export async function leerResultadoPorTurno(queueItemId) {
          s.id, s.participant_id, s.queue_item_id, s.video_id,
          s.total, s.rhythm, s.energy, s.interpretation, s.tier,
          s.engine_version, s.detail, s.created_at,
-         p.nickname,
+         p.nickname, p.table_name as mesa,
          pi.song_title, pi.artist, pi.video_title
        from scores s
        join participants p on p.id = s.participant_id
@@ -310,7 +310,7 @@ export async function ultimoResultado(sessionId) {
          s.engine_version, s.created_at,
          cast(strftime('%s', 'now') as integer)
            - cast(strftime('%s', s.created_at) as integer) as segundos,
-         p.nickname,
+         p.nickname, p.table_name as mesa,
          pi.song_title, pi.artist, pi.video_title
        from scores s
        join participants p on p.id = s.participant_id
@@ -392,4 +392,18 @@ export async function historialDeNoches(limite = 30) {
       )
       .all(limite),
   );
+}
+
+/** Revancha pendiente del participante, derivada de la ultima actuacion valida. */
+export async function revanchaPendiente(sessionId, participantId) {
+  const filas = await (await getDb()).prepare(
+    'select total, detail from scores where session_id = ? and participant_id = ? order by id desc limit 15',
+  ).all(Number(sessionId), Number(participantId));
+  for (const fila of filas) {
+    let detalle = {};
+    try { detalle = JSON.parse(fila.detail || '{}'); } catch { /* puntuacion historica */ }
+    if (detalle.abandono) continue;
+    return Number(fila.total) >= 55 && Number(fila.total) <= 64;
+  }
+  return false;
 }

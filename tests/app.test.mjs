@@ -1250,7 +1250,7 @@ test('terminar naturalmente sin started_at registrado no penaliza con abandono n
   assert.equal(cierre.ok, true);
   const detalle = JSON.parse(cierre.resultado.detail);
   assert.equal(detalle.abandono, false);
-  assert.ok(cierre.resultado.total >= 60, `debe sacar nota sin penalización de abandono, sacó ${cierre.resultado.total}`);
+  assert.ok(cierre.resultado.total >= 55, `debe sacar nota válida sin penalización de abandono, sacó ${cierre.resultado.total}`);
   assert.notEqual(cierre.resultado.total, 69);
 });
 

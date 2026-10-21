@@ -57,6 +57,7 @@ export type ResultadoVista = {
   participant_id: number;
   queue_item_id: number;
   nickname: string;
+  mesa?: string | null;
   song_title: string;
   artist: string;
   total: number;
