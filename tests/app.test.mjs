@@ -1498,3 +1498,33 @@ test('Fase 6: importarPistaPorUrl valida con oEmbed, incorpora al pool y rechaza
 
 
 
+
+test('ranking de mesas excluye abandonos y exige tres actuaciones para podio', async () => {
+  const { rankingMesasDeSesion } = await import('../src/db/puntuaciones.mjs');
+  const { getDb } = await import('../src/db/client.mjs');
+  const { code } = await crearSesion('Competencia mesas', 'bar');
+  const sesion = await obtenerSesion(code);
+  const ana = await unirseSesion(code, 'AnaRanking', undefined, 'Mesa Uno');
+  const bea = await unirseSesion(code, 'BeaRanking', undefined, 'mesa uno');
+  const carlos = await unirseSesion(code, 'CarlosRanking', undefined, 'Mesa Dos');
+  const db = await getDb();
+  // Fixture directo: comprobar agregación sin depender del reproductor.
+  const participantes = [ana, bea, carlos];
+  const notas = [[90, '{}'], [95, '{}'], [100, '{}'], [99, '{"abandono":true}']];
+  for (let i = 0; i < notas.length; i++) {
+    const participante = i === 0 ? participantes[0] : i === 1 ? participantes[1] : participantes[2];
+    const identidad = await identificar(code, participante.token);
+    await db.prepare(
+      `insert into scores (session_id, participant_id, queue_item_id, video_id, total, rhythm, energy, interpretation, tier, engine_version, seed, inputs, detail)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(sesion.id, identidad.participante.id, 900000 + i, 'wt-pY4mI2rs',
+      notas[i][0], 80, 80, 80, 'excellent', 2, 'ranking-' + i, '{}', notas[i][1]);
+  }
+  const ranking = await rankingMesasDeSesion(sesion.id);
+  assert.equal(ranking.length, 2);
+  assert.equal(ranking[0].mesa, 'Mesa Dos');
+  assert.equal(ranking[0].canciones, 1);
+  assert.equal(ranking[0].elegible, false);
+  assert.equal(ranking[1].canciones, 2);
+  assert.equal(ranking[1].media, 93);
+});
