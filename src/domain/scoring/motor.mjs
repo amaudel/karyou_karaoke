@@ -226,7 +226,7 @@ export function puntuar(entradas, config = CONFIG_POR_DEFECTO) {
   for (let nota = minRango; nota <= maxRango; nota += 1) {
     let peso = 1;
     if (indiceRango === 3) {
-      peso = nota === 100 ? 0.22 : nota === 99 ? 0.6 :
+      peso = nota === 100 ? 0.34 : nota === 99 ? 0.6 :
         nota >= 93 && nota <= 98 ? 2.1 : 0.85;
     }
     peso *= 1 + ((nota - (minRango + maxRango) / 2) / Math.max(1, maxRango - minRango)) * (indice - 0.5) * 0.6;
