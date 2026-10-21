@@ -76,3 +76,13 @@ export type FilaRankingVista = {
   canciones: number;
   posicion: number;
 };
+
+/** Mesa clasificada; provisional hasta completar tres canciones válidas. */
+export type FilaMesaVista = {
+  mesa: string;
+  mejor: number;
+  media: number;
+  canciones: number;
+  elegible: boolean;
+  posicion: number;
+};
