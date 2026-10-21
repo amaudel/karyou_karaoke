@@ -1,0 +1,40 @@
+{
+  "name": "karaoke",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "db:setup": "node scripts/db-setup.mjs",
+    "db:reset": "node scripts/db-setup.mjs --reset",
+    "verificar-api": "node scripts/verificar-api.mjs",
+    "importar": "node scripts/importar.mjs",
+    "stats": "node scripts/stats-pool.mjs",
+    "clasificar:genero": "node scripts/clasificar-genero.mjs",
+    "demo:sesion": "node scripts/demo-sesion.mjs",
+    "probar:resultado": "node scripts/probar-resultado.mjs",
+    "probar": "node scripts/probar.mjs",
+    "encolar": "node scripts/encolar.mjs",
+    "calibrar": "node scripts/calibrar-scoring.mjs",
+    "test": "node tests/all.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "next": "^15.1.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
+  }
+}
