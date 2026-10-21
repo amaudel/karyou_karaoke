@@ -1,5 +1,6 @@
-import RankingMesas from './RankingMesas';
 'use client';
+
+import RankingMesas from './RankingMesas';
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
