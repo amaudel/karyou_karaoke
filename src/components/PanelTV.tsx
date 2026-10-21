@@ -30,6 +30,7 @@ export default function PanelTV({
   oyentes,
   ranking,
   rankingMesas,
+  tieneRevancha,
   qr,
   enlace,
   onDescartar,
@@ -44,6 +45,7 @@ export default function PanelTV({
   oyentes: number;
   ranking: FilaRankingVista[];
   rankingMesas: FilaMesaVista[];
+  tieneRevancha: boolean;
   qr: string;
   enlace: string;
   onDescartar?: () => void;
@@ -112,6 +114,13 @@ export default function PanelTV({
           </div>
         </div>
 
+        {tieneRevancha && enPantalla && (
+          <div className="mt-3 rounded-xl border border-amber-300/60 bg-gradient-to-r from-orange-950/80 to-fuchsia-950/70 px-3 py-3 text-center text-white shadow-lg">
+            <p className="text-lg font-black tracking-wide text-amber-300">🔥 ¡LA REVANCHA!</p>
+            <p className="text-sm font-bold">{enPantalla.nickname} regresa al escenario</p>
+            <p className="text-xs text-amber-100/80">La segunda oportunidad no adelanta su turno.</p>
+          </div>
+        )}
         {enPantalla ? (
           <>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
