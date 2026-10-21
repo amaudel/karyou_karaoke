@@ -166,7 +166,7 @@ export async function iniciarTurnoAction(formData: FormData) {
 
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
-  redirect(`/sala/${code}/tv`);
+  redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
 }
 
 /** Inicia el turno desde el móvil del cantante sin redirigir a la TV */
@@ -221,7 +221,7 @@ export async function cerrarTurnoAction(formData: FormData) {
 
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
-  redirect(`/sala/${code}/tv`);
+  redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
 }
 
 /** Aplaude el turno que está sonando. Lo llama el móvil de un invitado. */
@@ -243,7 +243,7 @@ export async function moverAction(formData: FormData) {
 
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
-  redirect(`/sala/${code}/tv`);
+  redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
 }
 
 export async function cambiarModoSesionAction(formData: FormData) {
@@ -254,7 +254,7 @@ export async function cambiarModoSesionAction(formData: FormData) {
   revalidatePath('/');
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
-  redirect(`/sala/${code}/tv`);
+  redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
 }
 
 export async function terminarSesionAction(formData: FormData) {

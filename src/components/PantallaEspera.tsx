@@ -1,11 +1,10 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
-import AccesosTV from './AccesosTV';
+import Link from 'next/link';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnimacionResultado from './AnimacionResultado';
-import { cambiarModoSesionAction } from '@/app/sala/actions';
 import { despertar } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
@@ -113,28 +112,16 @@ export default function PantallaEspera({
           </div>
         </div>
 
-        {/* Acceso permanente a otras salas, visible también en la pantalla de espera */}
-        <AccesosTV compacto />
-
-        {/* Controles rápidos de TV: Modo (Casa/Bar) + Activar Audio y Pantalla Completa */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full border border-purple-400/30 bg-purple-950/50 px-3 py-2 text-xs font-black text-purple-200">
+            {modo === 'bar' ? '🍻 Modo Bar' : '🏠 Modo Casa'}
+          </span>
+          <Link href={`/sala/${code}/control`} target="_blank" rel="noopener noreferrer"
+            className="rounded-xl border border-purple-400/30 px-3 py-2 text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-900/50">
+            ⚙ Anfitrión ↗
+          </Link>
+        </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <form action={cambiarModoSesionAction}>
-            <input type="hidden" name="code" value={code} />
-            <input type="hidden" name="modo" value={modo === 'bar' ? 'casa' : 'bar'} />
-            <button
-              type="submit"
-              title="Cambiar entre Modo Casa y Modo Bar"
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wider transition hover:scale-105 ${
-                modo === 'bar'
-                  ? 'border-amber-400/50 bg-amber-950/50 text-amber-300 shadow-lg shadow-amber-950/40'
-                  : 'border-purple-400/40 bg-purple-950/50 text-purple-200'
-              }`}
-            >
-              <span>{modo === 'bar' ? '🍻 Modo Bar' : '🏠 Modo Casa'}</span>
-              <span className="text-[10px] opacity-70">(cambiar)</span>
-            </button>
-          </form>
-
           <button
             type="button"
             onClick={manejarActivar}
@@ -163,10 +150,6 @@ export default function PantallaEspera({
           </div>
         </div>
       </header>
-
-      <p className="relative z-10 mt-3 rounded-xl border border-purple-400/20 bg-purple-950/40 px-4 py-2 text-xs text-purple-200/80">
-        Anfitrión: usa <strong>Crear nueva sala</strong> para organizar otra noche. Esta sala seguirá disponible en Mis salas.
-      </p>
 
       {/* ------------------------------------------------ Main Grid Layout (Left QR / Right Ranking) */}
       <div className="relative z-10 my-4 grid gap-5 lg:grid-cols-12 lg:items-start">
