@@ -16,6 +16,15 @@ export default function PodioFinal({ code, modo, ranking, rankingMesas }: {
     <main className="relative mx-auto min-h-[90vh] max-w-6xl overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-b from-[#110727] via-[#210d39] to-[#090414] p-5 text-center text-white sm:p-10">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-30"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, #eab30866, transparent 65%)' }} />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        {Array.from({ length: 18 }, (_, i) => (
+          <span key={i} className="animar-confeti absolute text-xl"
+            style={{ left: `${(i * 13 + 7) % 100}%`, top: "-24px",
+              animationDelay: `${(i % 6) * 220}ms`, animationDuration: `${2.4 + (i % 4) * 0.4}s` }}>
+            {["✦", "★", "🎉", "✧"][i % 4]}
+          </span>
+        ))}
+      </div>
       <div className="relative z-10">
         <div className="mb-2 text-sm font-extrabold uppercase tracking-[0.4em] text-amber-200">Karyou Karaoke</div>
         <h1 className="animar-score-pop text-4xl font-black text-amber-300 sm:text-6xl">🏆 ¡GRAN FINAL!</h1>
