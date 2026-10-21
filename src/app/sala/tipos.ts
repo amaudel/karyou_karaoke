@@ -65,6 +65,8 @@ export type ResultadoVista = {
   energy: number;
   interpretation: number;
   tier: string;
+  detail?: string;
+  revanchaAnterior?: number | null;
 };
 
 /** Una fila del ranking. */
