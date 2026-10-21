@@ -27,7 +27,7 @@ export const LIMITE_PENDIENTES_BAR = 2;
 export const SEGUNDOS_DESBLOQUEO_BAR = 60;
 
 const PREFIJO_BAR = '[BAR] ';
-const PREFIJO_FX = /^\\[FX:(discreto|fiesta|epico)\\] /;
+const PREFIJO_FX = /^\[FX:(discreto|fiesta|epico)\] /;
 
 /** La configuración se almacena junto al modo en el nombre interno existente.
  * Compatible con sesiones antiguas, sin modificar la estructura de Turso. */
