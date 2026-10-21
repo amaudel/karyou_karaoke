@@ -27,7 +27,7 @@ export default function PodioFinal({ code, modo, ranking, rankingMesas }: {
       </div>
       <div className="relative z-10">
         <div className="mb-2 text-sm font-extrabold uppercase tracking-[0.4em] text-amber-200">Karyou Karaoke</div>
-        <h1 className="animar-score-pop text-4xl font-black text-amber-300 sm:text-6xl">🏆 ¡GRAN FINAL!</h1>
+        <h1 className="karyou-score-reveal karyou-show-halo text-4xl font-black text-amber-300 sm:text-6xl">🏆 ¡GRAN FINAL!</h1>
         <p className="mt-3 text-base text-purple-200">El aplauso final es para quienes hicieron brillar esta noche.</p>
         <div className={`mt-8 grid gap-5 ${modo === 'bar' ? 'lg:grid-cols-2' : ''}`}>
           {modo === 'bar' && (
@@ -36,7 +36,7 @@ export default function PodioFinal({ code, modo, ranking, rankingMesas }: {
               {mesasValidas.length ? (
                 <ol className="space-y-3">
                   {mesasValidas.map((m, i) => (
-                    <li key={m.mesa} className="animar-aparecer flex items-center gap-3 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-4"
+                    <li key={m.mesa} className={`karyou-rank-enter flex items-center gap-3 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-4 ${i === 0 ? "karyou-shine" : ""}`}
                       style={{ animationDelay: `${i * 180}ms` }}>
                       <span className="text-3xl">{MEDALLAS[i]}</span>
                       <div className="min-w-0 flex-1 text-left"><p className="truncate text-lg font-black">{m.mesa}</p>
@@ -52,7 +52,7 @@ export default function PodioFinal({ code, modo, ranking, rankingMesas }: {
             <h2 className="mb-3 text-xl font-black text-pink-200">🎤 Estrellas de la noche</h2>
             {ranking.length ? <ol className="space-y-3">
               {ranking.slice(0, 3).map((r, i) => (
-                <li key={r.participant_id} className="animar-aparecer flex items-center gap-3 rounded-2xl border border-pink-300/25 bg-pink-500/10 p-4" style={{ animationDelay: `${i * 180}ms` }}>
+                <li key={r.participant_id} className={`karyou-rank-enter flex items-center gap-3 rounded-2xl border border-pink-300/25 bg-pink-500/10 p-4 ${i === 0 ? "karyou-shine" : ""}`} style={{ animationDelay: `${i * 180}ms` }}>
                   <span className="text-3xl">{MEDALLAS[i]}</span>
                   <div className="min-w-0 flex-1 text-left"><p className="truncate text-lg font-black">{r.nickname}</p>
                     <p className="text-xs text-pink-100/75">{r.canciones} canciones · mejor actuación</p></div>
