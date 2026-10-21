@@ -59,7 +59,6 @@ export default async function PantallaPage({ params }: Props) {
           enlace={enlace}
           qr={qr}
           ranking={ranking}
-        rankingMesas={rankingMesas}
           rankingMesas={rankingMesas}
           resultado={resultado}
           resultadoReciente={resultadoReciente}
@@ -88,6 +87,7 @@ export default async function PantallaPage({ params }: Props) {
         resultado={resultado}
         resultadoReciente={resultadoReciente}
         ranking={ranking}
+        rankingMesas={rankingMesas}
         aplausos={aplausos}
         oyentes={oyentes}
         qr={qr}
