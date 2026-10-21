@@ -6,18 +6,18 @@ import { tic, revelar, resultado as sonidoResultado } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
 
 const FRASES = [
-  '🎙️ Analizando tu actuación…',
-  '🎵 Revisando cómo cantaste…',
+  '🎙️ Preparando el resultado recreativo…',
+  '🎵 Sumando las señales del show…',
   '👏 Contando los aplausos de la sala…',
   '⭐ Calculando tu puntaje…',
 ];
 
 const MENSAJES: Record<string, string> = {
-  under: '¡A SEGUIR PRACTICANDO!',
-  normal: '¡NADA MAL!',
-  good: '¡Mucha Garra! 🌟',
-  excellent: '¡ACTUACIÓN FABULOSA! 🔥',
-  exceptional: '¡CONCIERTO LEGENDARIO! 👑',
+  under: '🔥 ¡ESTO MERECE UNA REVANCHA!',
+  normal: '🎤 ¡BUEN INTENTO, SIGUE BRILLANDO!',
+  good: '👏 ¡GRAN PRESENTACIÓN!',
+  excellent: '🌟 ¡TE LUCISTE EN EL ESCENARIO!',
+  exceptional: '🏆 ¡ACTUACIÓN EXTRAORDINARIA!',
 };
 
 const COLOR_TIER: Record<string, string> = {
@@ -37,7 +37,7 @@ const BADGE_TIER: Record<string, string> = {
 };
 
 /** Los cuatro tramos, en milisegundos. Inicio rápido (~0.5s) y celebración final extendida (~4.5s). */
-const TIEMPOS = { analisis: 500, subpuntajes: 600, total: 1400, mensaje: 4500 };
+const TIEMPOS = { analisis: 650, subpuntajes: 900, total: 1400, mensaje: 2200 };
 
 type Fase = 'analizando' | 'subpuntajes' | 'total' | 'mensaje';
 
@@ -133,6 +133,7 @@ export default function AnimacionResultado({
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#0a0618] via-[#120b29] to-[#080312] px-8 py-6 text-center select-none">
       
+      {resultado?.total === 100 && revelado && <div aria-hidden="true" className="pointer-events-none absolute inset-0 border-[10px] border-amber-300/50 animate-pulse" />}
       {/* ------------------------------------------------ Luces de Escenario / Disco */}
       <div className="animar-disco pointer-events-none absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-purple-600/20 via-pink-500/10 to-transparent blur-3xl" />
       <div className="animar-disco pointer-events-none absolute -right-40 -bottom-40 h-[600px] w-[600px] rounded-full bg-gradient-to-tl from-amber-500/20 via-indigo-600/10 to-transparent blur-3xl" style={{ animationDirection: 'reverse' }} />
@@ -167,6 +168,7 @@ export default function AnimacionResultado({
           {resultado?.nickname ?? 'Cantante'}
         </h2>
         
+        {resultado?.mesa && <p className="mt-1 text-sm font-bold text-amber-300">🪑 {resultado.mesa}</p>}
         <p className="mt-1 truncate text-base text-purple-200/70">
           🎵 <span className="font-semibold text-purple-100">{resultado?.song_title ?? 'Canción'}</span> · {resultado?.artist ?? 'Artista'}
         </p>
@@ -260,7 +262,7 @@ export default function AnimacionResultado({
             {(fase === 'total' || fase === 'mensaje') && (
               <div className="animar-aparecer mt-3 flex flex-col items-center">
                 <p className={`text-3xl font-black tracking-wide bg-gradient-to-r ${colorGradiente} bg-clip-text text-transparent drop-shadow-lg`}>
-                  {MENSAJES[resultado.tier] ?? ''}
+                  {resultado.total === 100 ? '👑 ¡LEYENDA DEL KARAOKE!' : resultado.total === 99 ? '🏆 ¡ACTUACIÓN EXTRAORDINARIA!' : MENSAJES[resultado.tier] ?? ''}
                 </p>
                 
                 {fase === 'mensaje' && mio && (
