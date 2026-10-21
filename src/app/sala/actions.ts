@@ -221,7 +221,7 @@ export async function cerrarTurnoAction(formData: FormData) {
 
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
-  redirect(`/sala/${code}/tv`);
+  redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
 }
 
 /** Aplaude el turno que está sonando. Lo llama el móvil de un invitado. */
