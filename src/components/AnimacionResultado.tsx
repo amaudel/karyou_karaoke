@@ -129,6 +129,9 @@ export default function AnimacionResultado({
   const mio = resultado ? ranking.find((r) => r.participant_id === resultado.participant_id) : undefined;
   const revelado = fase !== 'analizando' && resultado !== null;
   const esTop = Boolean(mio && mio.posicion <= 3);
+  const esRevancha = (() => { try { return JSON.parse(resultado?.detail || '{}').perfil === 'revancha'; } catch { return false; } })();
+  const diferencia = esRevancha && typeof resultado?.revanchaAnterior === 'number'
+    ? resultado.total - resultado.revanchaAnterior : null;
 
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#0a0618] via-[#120b29] to-[#080312] px-8 py-6 text-center select-none">
@@ -158,6 +161,11 @@ export default function AnimacionResultado({
         </div>
       )}
 
+      {esRevancha && revelado && (
+        <div className="relative z-10 mb-3 rounded-full border-2 border-orange-300/70 bg-orange-950/60 px-6 py-2 text-lg font-black text-amber-200 animar-score-pop">
+          🔥 ¡RESULTADO DE LA REVANCHA!
+        </div>
+      )}
       {/* ------------------------------------------------ Cabecera del Cantante */}
       <div className="relative z-10 max-w-2xl">
         <div className="inline-block rounded-full bg-purple-950/60 px-4 py-1 border border-purple-500/30 text-xs font-semibold tracking-widest text-purple-300 uppercase shadow-lg shadow-purple-900/20 mb-2">
@@ -265,6 +273,11 @@ export default function AnimacionResultado({
                   {resultado.total === 100 ? '👑 ¡LEYENDA DEL KARAOKE!' : resultado.total === 99 ? '🏆 ¡ACTUACIÓN EXTRAORDINARIA!' : MENSAJES[resultado.tier] ?? ''}
                 </p>
                 
+                {fase === 'mensaje' && diferencia !== null && (
+                  <div className="mt-3 rounded-xl border border-orange-400/50 bg-orange-950/50 px-5 py-2 text-base font-black text-orange-100">
+                    {resultado.revanchaAnterior} → {resultado.total} puntos · {diferencia > 0 ? `¡SUBISTE ${diferencia}!` : diferencia === 0 ? '¡EMPATE!' : '¡SIGUE LA FIESTA!'}
+                  </div>
+                )}
                 {fase === 'mensaje' && mio && (
                   <div className="mt-3 flex items-center gap-2 rounded-full bg-amber-500/20 px-5 py-2 border border-amber-400/40 text-amber-200 font-extrabold text-base shadow-lg shadow-amber-900/30">
                     <span>🏆</span>
