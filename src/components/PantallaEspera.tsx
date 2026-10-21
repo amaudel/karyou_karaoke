@@ -1,10 +1,11 @@
+import RankingMesas from './RankingMesas';
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnimacionResultado from './AnimacionResultado';
 import { cambiarModoSesionAction } from '@/app/sala/actions';
 import { despertar } from '@/lib/sonido.mjs';
-import type { ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
+import type { ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
 /**
  * Pantalla de espera para TV comercial o familiar.
@@ -19,6 +20,7 @@ export default function PantallaEspera({
   enlace,
   qr,
   ranking,
+  rankingMesas,
   resultado,
   resultadoReciente,
   audioListo = false,
@@ -29,6 +31,7 @@ export default function PantallaEspera({
   enlace: string;
   qr: string;
   ranking: FilaRankingVista[];
+  rankingMesas: FilaMesaVista[];
   resultado: ResultadoVista | null;
   resultadoReciente: boolean;
   audioListo?: boolean;
@@ -86,6 +89,7 @@ export default function PantallaEspera({
       <div className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-purple-600/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-[500px] w-[500px] rounded-full bg-pink-500/15 blur-3xl" />
 
+      {modo === 'bar' && rankingMesas.length > 0 && <div className="relative z-10 mb-4"><RankingMesas mesas={rankingMesas} compacto /></div>}
       {/* ------------------------------------------------ Branding Header */}
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-purple-800/30 pb-4">
         <div className="flex items-center gap-3">
