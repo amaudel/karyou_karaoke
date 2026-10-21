@@ -23,7 +23,7 @@ import {
   BotonImportarUrl,
 } from '@/components/BotonesAccion';
 import FormularioBuscar from '@/components/FormularioBuscar';
-import { contarAplausos, yaAplaudio, rankingDeSesion } from '@/db/puntuaciones.mjs';
+import { contarAplausos, yaAplaudio, rankingDeSesion, revanchaPendiente } from '@/db/puntuaciones.mjs';
 import { mensajeDeError } from '../mensajes';
 import {
   unirseAction,
@@ -201,6 +201,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
   );
   const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
   const miPuesto = ranking.find((r) => r.participant_id === quien.participante.id);
+  const tengoRevancha = await revanchaPendiente(sesion.id, quien.participante.id);
 
   return (
     <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-purple-900/40 bg-gradient-to-b from-[#0c071e] via-[#110a28] to-[#070312] p-3.5 sm:p-8 pb-12 text-white shadow-2xl">
@@ -210,6 +211,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
       <Refresco cada={2000} />
 
       <div className="relative z-10 space-y-6">
+        {tengoRevancha && <div className="rounded-xl border border-orange-400/40 bg-orange-500/15 px-4 py-3 text-sm text-orange-100"><strong>🔥 ¡Tienes una revancha pendiente!</strong><p className="mt-1 text-orange-100/80">En tu próxima canción tendrás más oportunidades de alcanzar una puntuación excelente.</p></div>}
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-800/40 pb-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
