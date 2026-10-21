@@ -239,6 +239,9 @@ export default function AnimacionResultado({
             ))}
           </div>
 
+          {(fase === "total" || fase === "mensaje") && resultado.total >= 90 && (
+            <div aria-hidden="true" className="karyou-show-halo pointer-events-none absolute left-1/2 top-24 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-400/20 blur-3xl" />
+          )}
           {/* Gran Revelación del Puntaje Principal */}
           <div className="relative mt-6 flex flex-col items-center">
             
@@ -259,16 +262,16 @@ export default function AnimacionResultado({
               PUNTUACIÓN FINAL
             </p>
 
-            {/* Número Gigante Estilo Neón */}
+            {/* Número Gigante Estilo Neón · animación solo cuando se revela el total */}
             <div className="relative">
-              <p className={`text-[6rem] sm:text-[7rem] leading-none font-black tabular-nums bg-gradient-to-b ${colorGradiente} bg-clip-text text-transparent animar-neon ${fase === 'total' || fase === 'mensaje' ? 'animar-score-pop' : ''}`}>
+              <p className={`text-[6rem] sm:text-[7rem] leading-none font-black tabular-nums bg-gradient-to-b ${colorGradiente} bg-clip-text text-transparent animar-neon ${fase === 'total' || fase === 'mensaje' ? 'karyou-score-reveal' : ''}`}>
                 {fase === 'subpuntajes' ? '—' : fase === 'mensaje' ? resultado.total : contador}
               </p>
             </div>
 
             {/* Mensaje de Logro y Posición en Ranking */}
             {(fase === 'total' || fase === 'mensaje') && (
-              <div className="animar-aparecer mt-3 flex flex-col items-center">
+              <div className="karyou-rank-enter mt-3 flex flex-col items-center">
                 <p className={`text-3xl font-black tracking-wide bg-gradient-to-r ${colorGradiente} bg-clip-text text-transparent drop-shadow-lg`}>
                   {resultado.total === 100 ? '👑 ¡LEYENDA DEL KARAOKE!' : resultado.total === 99 ? '🏆 ¡ACTUACIÓN EXTRAORDINARIA!' : MENSAJES[resultado.tier] ?? ''}
                 </p>

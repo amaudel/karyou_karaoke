@@ -158,3 +158,44 @@ input[type="search"]::-webkit-search-results-decoration {
   }
 }
 
+
+/* Show TV: animaciones discretas de compositor, sin tocar el iframe de YouTube. */
+@keyframes karyou-spotlight {
+  0%, 100% { transform: translate3d(-7%, 0, 0); opacity: .3; }
+  50% { transform: translate3d(7%, 0, 0); opacity: .58; }
+}
+@keyframes karyou-halo {
+  0%, 100% { opacity: .22; transform: scale(.98); }
+  50% { opacity: .55; transform: scale(1.04); }
+}
+@keyframes karyou-shine {
+  0% { transform: translateX(-130%) skewX(-20deg); }
+  100% { transform: translateX(340%) skewX(-20deg); }
+}
+@keyframes karyou-score-reveal {
+  0% { transform: translateY(14px) scale(.86); opacity: 0; }
+  72% { transform: translateY(-3px) scale(1.035); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes karyou-rank-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.karyou-show-spotlight {
+  animation: karyou-spotlight 11s ease-in-out infinite;
+  will-change: transform;
+}
+.karyou-show-halo { animation: karyou-halo 4.5s ease-in-out infinite; }
+.karyou-shine { overflow: hidden; position: relative; isolation: isolate; }
+.karyou-shine::after {
+  content: ''; position: absolute; inset: 0 auto 0 -30%; width: 36%;
+  pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+  animation: karyou-shine 3.5s ease-out 1 both;
+}
+.karyou-score-reveal { animation: karyou-score-reveal .8s cubic-bezier(.2,.8,.2,1) both; }
+.karyou-rank-enter { animation: karyou-rank-enter .55s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .karyou-show-spotlight, .karyou-show-halo, .karyou-shine::after,
+  .karyou-score-reveal, .karyou-rank-enter { animation: none !important; }
+}
