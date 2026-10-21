@@ -238,6 +238,12 @@ export function puntuar(entradas, config = CONFIG_POR_DEFECTO) {
     punto -= pesosNotas[i];
     if (punto < 0) { total = minRango + i; break; }
   }
+  if (!abandono) {
+    // Aplausos y micrófono opcional influyen de forma visible dentro del rango,
+    // sin cambiar la categoría que seleccionó la distribución calibrada.
+    const ajusteAplausos = Math.round(((proporcionAplauso ?? 0.5) - 0.5) * 4);
+    total = limitar(total + ajusteAplausos + Math.round(aporteMicrofono), minRango, maxRango);
+  }
   if (abandono) {
     const baseAbandono = config.minimo + Math.round((ratio / 0.6) * 14);
     const ruidoAbandono = Math.round((azar() - 0.4) * 8);
