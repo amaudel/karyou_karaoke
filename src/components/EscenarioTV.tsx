@@ -29,6 +29,7 @@ export default function EscenarioTV({
   resultadoReciente,
   ranking,
   rankingMesas,
+  tieneRevancha,
   aplausos,
   oyentes,
   qr,
@@ -44,6 +45,7 @@ export default function EscenarioTV({
   resultadoReciente: boolean;
   ranking: FilaRankingVista[];
   rankingMesas: FilaMesaVista[];
+  tieneRevancha: boolean;
   aplausos: number;
   oyentes: number;
   qr: string;
@@ -152,6 +154,7 @@ export default function EscenarioTV({
           oyentes={oyentes}
           ranking={ranking}
           rankingMesas={rankingMesas}
+          tieneRevancha={tieneRevancha}
           qr={qr}
           enlace={enlace}
           onDescartar={onDescartar}

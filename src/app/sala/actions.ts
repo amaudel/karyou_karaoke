@@ -262,7 +262,8 @@ export async function terminarSesionAction(formData: FormData) {
   await cambiarEstadoSesion(code, 'finished');
 
   revalidatePath('/');
-  redirect('/');
+  revalidatePath(`/sala/${code}/tv`);
+  redirect(`/sala/${code}/tv`);
 }
 
 /* ------------------------------------------- acciones sin redirección
