@@ -254,3 +254,120 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-score-content { gap: 2px; padding-block: 3px; }
   .karyou-score-content .karyou-score-number { font-size: clamp(42px, 13cqh, 76px); }
 }
+
+/* Marcador TV: usa todo el lienzo 16:9, con escala por contenedor.
+   El mensaje de celebración tiene espacio reservado, sin recortar contenidos. */
+.karyou-score-showcase {
+  position: relative; width: 100%; height: 100%; min-height: 0;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(4px, 1.5cqh, 12px);
+  padding: clamp(12px, 3cqh, 28px) clamp(14px, 4cqw, 44px);
+  background: radial-gradient(ellipse at 74% 42%, #38205a 0%, transparent 55%),
+    linear-gradient(145deg,#180929 0%,#110721 55%,#090313 100%);
+  color: #fff; isolation: isolate;
+}
+.karyou-showcase-glow {
+  pointer-events:none; position:absolute; inset:0;
+  background:radial-gradient(circle at 76% 45%,rgba(236,72,153,.10),transparent 45%);
+}
+.karyou-showcase-header { position:relative; z-index:1; min-width:0; text-align:left; }
+.karyou-showcase-overline {color:#fbbf24; font-weight:900; font-size:clamp(11px,2.8cqh,16px); letter-spacing:.13em;}
+.karyou-showcase-header h2 {
+  font-size:clamp(30px,8.5cqh,58px); font-weight:950; line-height:1.07;
+  letter-spacing:-.03em; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;
+  max-width:100%; text-shadow:0 3px 20px rgba(168,85,247,.45);
+}
+.karyou-showcase-song {
+  max-width:100%; color:#e9d5ff; font-weight:600;
+  font-size:clamp(12px,3cqh,19px); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+.karyou-showcase-stage {
+  display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items:stretch; gap:clamp(12px,3cqw,34px); position:relative; z-index:1;
+  min-height:0;
+}
+.karyou-showcase-metrics {
+  display:grid; grid-template-rows:repeat(3,minmax(0,1fr));
+  gap:clamp(4px,1cqh,10px); min-height:0;
+}
+.karyou-showcase-metric {
+  min-height:0; display:flex; align-items:center; gap:clamp(8px,2.5cqw,22px);
+  border:1px solid rgba(192,132,252,.35); border-radius:clamp(10px,2cqh,18px);
+  padding:clamp(4px,1.2cqh,12px) clamp(10px,2cqw,22px);
+  background:linear-gradient(100deg,rgba(107,33,168,.3),rgba(88,28,135,.13));
+}
+.karyou-showcase-metric > span {font-size:clamp(20px,6cqh,36px); line-height:1;}
+.karyou-showcase-metric p {
+  font-size:clamp(10px,2.2cqh,14px);font-weight:800;color:#d8b4fe;letter-spacing:.1em;
+}
+.karyou-showcase-metric strong {
+  display:block; font-size:clamp(26px,6.5cqh,45px);font-weight:950;line-height:1;
+}
+.karyou-showcase-main-score {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:0;min-height:0;position:relative;
+  border:1px solid rgba(251,191,36,.35);border-radius:22px;
+  background:radial-gradient(ellipse at center,rgba(168,85,247,.19),rgba(88,28,135,.13) 70%,transparent);
+}
+.karyou-showcase-main-score > p {
+  color:#fcd34d; font-weight:900; letter-spacing:.18em;
+  font-size:clamp(10px,2.3cqh,15px);
+}
+.karyou-showcase-main-score strong {
+  font-size:clamp(88px,29cqh,175px);
+  letter-spacing:-.045em; line-height:.98;
+  font-weight:950; font-variant-numeric:tabular-nums;
+}
+.karyou-showcase-main-score > span {
+  font-size:clamp(10px,2.1cqh,14px);font-weight:800;color:#e9d5ff;
+  text-align:center;letter-spacing:.04em;line-height:1.2;padding-inline:8px;
+}
+.karyou-showcase-footer {
+  position:relative;z-index:1;display:flex; flex-direction:column;
+  justify-content:center;align-items:center;min-height:clamp(58px,13cqh,95px);
+  border-top:1px solid rgba(251,191,36,.27); text-align:center;gap:2px;
+}
+.karyou-showcase-message {
+  font-size:clamp(21px,5.2cqh,37px);line-height:1.06;font-weight:950;
+  text-wrap:balance;color:#fcd34d;text-shadow:0 2px 14px rgba(251,191,36,.3);
+}
+.karyou-showcase-extra {font-size:clamp(11px,2.5cqh,16px);font-weight:800;color:#e9d5ff;}
+.karyou-showcase-analysis {
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:clamp(8px,3cqh,24px);position:relative;z-index:1;
+  text-align:center;grid-row:2 / 4;
+}
+.karyou-showcase-analysis p {font-size:clamp(18px,4.5cqh,30px);font-weight:800;color:#e9d5ff;}
+.karyou-showcase-equalizer {display:flex;align-items:end;gap:9px;height:clamp(45px,13cqh,95px);}
+.karyou-showcase-equalizer > span {width:clamp(7px,1cqw,13px);height:25%;border-radius:6px 6px 0 0;background:linear-gradient(#f59e0b,#ec4899,#7c3aed);}
+.karyou-showcase-progress {height:8px;width:min(70%,480px);background:#361458;border-radius:99px;overflow:hidden;}
+.karyou-showcase-progress > div {height:100%;background:linear-gradient(90deg,#9333ea,#ec4899,#fbbf24);}
+.karyou-showcase-analysis .karyou-showcase-cheers {font-size:16px;color:#fbbf24;}
+.karyou-showcase-sparks {pointer-events:none;position:absolute;inset:0;z-index:3;overflow:hidden;}
+.karyou-showcase-sparks > span {position:absolute;top:-20px;font-size:20px;}
+@container (max-width:600px) {
+  .karyou-score-showcase {padding:8px 12px;gap:4px;grid-template-rows:auto minmax(0,1fr) auto;}
+  .karyou-showcase-overline {font-size:10px;}
+  .karyou-showcase-header h2 {font-size:clamp(22px,6cqh,38px);}
+  .karyou-showcase-song {font-size:11px;}
+  .karyou-showcase-stage {gap:8px;}
+  .karyou-showcase-metric {padding:3px 6px;gap:6px;}
+  .karyou-showcase-metric > span {font-size:17px;}
+  .karyou-showcase-metric p {font-size:9px;letter-spacing:0;}
+  .karyou-showcase-metric strong {font-size:clamp(17px,5cqh,26px);}
+  .karyou-showcase-main-score {border-radius:10px;}
+  .karyou-showcase-main-score strong {font-size:clamp(50px,19cqh,100px);}
+  .karyou-showcase-main-score > p,.karyou-showcase-main-score > span {font-size:9px;letter-spacing:0;}
+  .karyou-showcase-footer {min-height:45px;}
+  .karyou-showcase-message {font-size:clamp(14px,4cqh,23px);}
+}
+@container (max-height:300px) {
+  .karyou-score-showcase {padding-block:5px;gap:3px;}
+  .karyou-showcase-header h2 {font-size:clamp(20px,6cqh,33px);}
+  .karyou-showcase-overline,.karyou-showcase-song {font-size:9px;}
+  .karyou-showcase-metric strong {font-size:clamp(15px,5cqh,24px);}
+  .karyou-showcase-metric > span {font-size:16px;}
+  .karyou-showcase-main-score strong {font-size:clamp(48px,23cqh,78px);}
+  .karyou-showcase-footer {min-height:35px;}
+  .karyou-showcase-message {font-size:clamp(14px,4.3cqh,21px);}
+}
