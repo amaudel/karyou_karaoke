@@ -412,3 +412,41 @@ export async function revanchaPendiente(sessionId, participantId) {
   }
   return false;
 }
+
+/**
+ * Clasificación de mesas por promedio de actuaciones válidas.
+ * Las mesas con menos de 3 actuaciones son provisionales y no optan al podio.
+ * No cuenta abandonos; una revancha válida sí cuenta, sin bonificación.
+ * @param {number} sessionId
+ */
+export async function rankingMesasDeSesion(sessionId) {
+  const filas = await (await getDb()).prepare(
+    `select p.table_name as mesa, s.total, s.detail
+       from scores s join participants p on p.id = s.participant_id
+      where s.session_id = ? and p.table_name is not null
+        and trim(p.table_name) != ''
+      order by s.id asc`,
+  ).all(sessionId);
+  const grupos = new Map();
+  for (const fila of filas) {
+    let detalle = {};
+    try { detalle = JSON.parse(fila.detail || '{}'); } catch { /* resultado antiguo */ }
+    if (detalle.abandono) continue;
+    const nombre = String(fila.mesa).trim();
+    const clave = nombre.toLocaleLowerCase('es');
+    if (!grupos.has(clave)) grupos.set(clave, { mesa: nombre, suma: 0, canciones: 0, mejor: 0 });
+    const grupo = grupos.get(clave);
+    const nota = Number(fila.total);
+    grupo.suma += nota;
+    grupo.canciones += 1;
+    grupo.mejor = Math.max(grupo.mejor, nota);
+  }
+  return [...grupos.values()].map(({ suma, ...grupo }) => ({
+    ...grupo, media: Math.round(suma / grupo.canciones),
+    elegible: grupo.canciones >= 3,
+  })).sort((a, b) =>
+    Number(b.elegible) - Number(a.elegible) ||
+    b.media - a.media || b.canciones - a.canciones ||
+    a.mesa.localeCompare(b.mesa, 'es')
+  ).map((fila, indice) => ({ ...fila, posicion: indice + 1 }));
+}
