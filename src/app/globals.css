@@ -239,3 +239,18 @@ input[type="search"]::-webkit-search-results-decoration {
     animation: none !important;
   }
 }
+
+/* La puntuación se escala al rectángulo real del reproductor (16:9), no al viewport
+   del navegador. Evita recortes de nombres y mensajes en TV y pantallas pequeñas. */
+.karyou-score-screen {
+  container-type: size;
+  isolation: isolate;
+}
+.karyou-score-content {
+  min-height: 0;
+  overflow: hidden;
+}
+@container (max-height: 340px) {
+  .karyou-score-content { gap: 2px; padding-block: 3px; }
+  .karyou-score-content .karyou-score-number { font-size: clamp(42px, 13cqh, 76px); }
+}
