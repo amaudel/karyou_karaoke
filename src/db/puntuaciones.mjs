@@ -312,7 +312,7 @@ export async function ultimoResultado(sessionId) {
       `select
          s.id, s.participant_id, s.queue_item_id, s.video_id,
          s.total, s.rhythm, s.energy, s.interpretation, s.tier,
-         s.engine_version, s.created_at,
+         s.engine_version, s.detail, s.created_at,
          cast(strftime('%s', 'now') as integer)
            - cast(strftime('%s', s.created_at) as integer) as segundos,
          p.nickname, p.table_name as mesa,
@@ -449,4 +449,19 @@ export async function rankingMesasDeSesion(sessionId) {
     b.media - a.media || b.canciones - a.canciones ||
     a.mesa.localeCompare(b.mesa, 'es')
   ).map((fila, indice) => ({ ...fila, posicion: indice + 1 }));
+}
+
+/** Nota válida inmediatamente anterior a una revancha recién puntuada. */
+export async function notaAnteriorRevancha(sessionId, participantId, scoreId) {
+  const filas = await (await getDb()).prepare(
+    `select total, detail from scores
+      where session_id = ? and participant_id = ? and id < ?
+      order by id desc`,
+  ).all(Number(sessionId), Number(participantId), Number(scoreId));
+  for (const fila of filas) {
+    let detalle = {};
+    try { detalle = JSON.parse(fila.detail || '{}'); } catch { /* histórico */ }
+    if (!detalle.abandono) return Number(fila.total);
+  }
+  return null;
 }
