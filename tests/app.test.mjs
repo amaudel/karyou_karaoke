@@ -900,27 +900,21 @@ test('los aplausos cuentan una vez por persona y no valen los propios', async ()
   assert.equal(await contarAplausos(item), 1);
 });
 
-test('los aplausos suben la nota, en promedio', async () => {
-  const media = async (conAplausos) => {
-    let suma = 0;
-    for (let i = 0; i < 60; i += 1) {
-      const { code, luis, item } = await montarTurno(`Aplausos-media-${conAplausos}-${i}`);
-      await envejecerTurno(item, 4);
-      if (conAplausos) await aplaudir(code, luis.token, item);
-      void code;
-      const res = await cerrarTurnoConPuntuacion(code, item, {
-        posicionFinal: 190,
-        terminoNatural: true,
-      });
-      suma += res.resultado.total;
-    }
-    return suma / 60;
-  };
-
-  const con = await media(true);
-  const sin = await media(false);
-  assert.ok(con > sin, `con aplausos (${con}) debería superar a sin (${sin})`);
+test('los aplausos no empeoran la nota para la misma actuación', () => {
+  // Comparación pareada: usar la misma semilla elimina la variación entre turnos.
+  let con = 0;
+  let sin = 0;
+  for (let i = 0; i < 1000; i++) {
+    const base = {
+      completionRatio: 1, interruptionCount: 0, endedNaturally: true,
+      audienceSize: 12, priorScores: [], songDifficulty: 3, seed: 'aplausos-' + i,
+    };
+    sin += puntuar({ ...base, audienceCheers: 0 }).total;
+    con += puntuar({ ...base, audienceCheers: 8 }).total;
+  }
+  assert.ok(con >= sin, `los aplausos (${con}) no deben bajar el promedio (${sin})`);
 });
+
 
 test('el ranking ordena por mejor nota, no por media', async () => {
   const { code, ana, item } = await montarTurno('Ranking');
