@@ -490,44 +490,75 @@ async function compactarCola(sessionId) {
 }
 
 /**
- * Reordena la cola en Modo Bar usando Round-Robin por participante:
- * 1. Respeta la canción que ya está 'singing' (o la primera 'waiting' ya cargada en TV).
- * 2. Intercala el resto por número de ronda (1ª canción de cada persona antes que la 2ª).
+ * Modo Bar: rotación equitativa de mesas y, dentro de cada mesa, de cantantes.
+ * Mantiene fijo el turno que ya está en la TV. Cada mesa obtiene una canción
+ * por ronda global; en rondas posteriores se alternan sus participantes.
+ * El orden inicial es el de solicitud (id), sin adelantar canciones del mismo
+ * participante sobre la primera de otro de su mesa.
  * @param {number} sessionId
  */
 async function reordenarColaBar(sessionId) {
   const db = await getDb();
-  const filas = await db
-    .prepare(
-      `select q.id, q.participant_id, p.table_name, q.status, q.position from queue_items q
-        join participants p on p.id = q.participant_id
-        where q.session_id = ? and q.status in ('waiting', 'singing')
-        order by case when status = 'singing' then 0 else 1 end, q.position asc, q.id asc`,
-    )
-    .all(sessionId);
-
+  const filas = await db.prepare(
+    `select q.id, q.participant_id, p.table_name, q.status, q.position
+       from queue_items q join participants p on p.id = q.participant_id
+      where q.session_id = ? and q.status in ('waiting', 'singing')
+      order by case when q.status = 'singing' then 0 else 1 end, q.position asc, q.id asc`,
+  ).all(sessionId);
   if (filas.length <= 2) return;
 
-  const vistos = new Map();
-  // La primera fila es la que está sonando o la que ya está preparada en la TV:
-  // nunca se le quita de la pantalla al cantante que ya tiene su turno listo.
+  const claveMesa = (f) =>
+    (f.table_name && f.table_name.trim().toLowerCase()) || `p_${f.participant_id}`;
   const fijada = filas[0];
-  const claveFijada =
-    (fijada.table_name && fijada.table_name.trim().toLowerCase()) || `p_${fijada.participant_id}`;
-  vistos.set(claveFijada, 1);
-
-  const resto = filas.slice(1).sort((a, b) => a.id - b.id);
-  const conRonda = resto.map((f) => {
-    const clave = (f.table_name && f.table_name.trim().toLowerCase()) || `p_${f.participant_id}`;
-    const ronda = (vistos.get(clave) ?? 0) + 1;
-    vistos.set(clave, ronda);
-    return { ...f, ronda };
-  });
-
-  conRonda.sort((a, b) => a.ronda - b.ronda || a.id - b.id);
-
-  const idsOrdenados = [fijada.id, ...conRonda.map((f) => f.id)];
-  await aplicarOrdenCola(db, idsOrdenados);
+  const mesas = new Map();
+  // La canción visible queda fija, pero cuenta como la primera de su mesa y
+  // de su cantante para determinar quién sigue en esa misma mesa.
+  for (const fila of [...filas].sort((a, b) => a.id - b.id)) {
+    const clave = claveMesa(fila);
+    if (!mesas.has(clave)) mesas.set(clave, new Map());
+    const cantantes = mesas.get(clave);
+    if (!cantantes.has(fila.participant_id)) cantantes.set(fila.participant_id, []);
+    cantantes.get(fila.participant_id).push(fila);
+  }
+  const porMesa = new Map();
+  for (const [clave, cantantes] of mesas) {
+    const participantes = [...cantantes.entries()].sort((a, b) => a[1][0].id - b[1][0].id);
+    if (clave === claveMesa(fijada)) {
+      // El cantante de la canción fijada ya tuvo su oportunidad en esta vuelta.
+      const indice = participantes.findIndex(([id]) => id === fijada.participant_id);
+      if (indice >= 0) {
+        const [cantanteFijado] = participantes.splice(indice, 1);
+        cantanteFijado[1] = cantanteFijado[1].filter((f) => f.id !== fijada.id);
+        participantes.push(cantanteFijado);
+      }
+    }
+    const orden = [];
+    let pendientes = true;
+    while (pendientes) {
+      pendientes = false;
+      for (const [, canciones] of participantes) {
+        if (canciones.length) {
+          orden.push(canciones.shift());
+          pendientes = true;
+        }
+      }
+    }
+    porMesa.set(clave, orden.filter((f) => f.id !== fijada.id));
+  }
+  // La mesa que ya está en pantalla participa al final de la primera vuelta.
+  const mesaFijada = claveMesa(fijada);
+  const claves = [...porMesa.keys()].filter((k) => k !== mesaFijada);
+  claves.push(mesaFijada);
+  const resultado = [fijada.id];
+  let quedan = true;
+  while (quedan) {
+    quedan = false;
+    for (const clave of claves) {
+      const fila = porMesa.get(clave)?.shift();
+      if (fila) { resultado.push(fila.id); quedan = true; }
+    }
+  }
+  await aplicarOrdenCola(db, resultado);
 }
 
 /**
