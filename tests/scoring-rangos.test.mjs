@@ -54,3 +54,23 @@ test('distribucion por perfiles aproximada con 100000 semillas', () => {
     }
   }
 });
+
+test('las etiquetas visuales corresponden a los cuatro rangos v2', () => {
+  const etiqueta = (n) => n <= 64 ? 'under' : n <= 77 ? 'normal' : n <= 89 ? 'good' : n <= 98 ? 'excellent' : 'exceptional';
+  const vistos = new Set();
+  for (let i = 0; i < 12000; i++) {
+    const resultado = puntuar(entrada('tier-v2-' + i));
+    assert.equal(resultado.tier, etiqueta(resultado.total), 'nota ' + resultado.total);
+    vistos.add(resultado.total);
+  }
+  for (const nota of [55, 64, 65, 69, 70, 77, 78, 79, 89, 90, 98, 99, 100]) {
+    assert.ok(vistos.has(nota), 'no se observo nota ' + nota);
+  }
+});
+
+test('revancha no modifica la identidad de la mesa ni la cola', () => {
+  const resultado = puntuar(entrada('mesa4-carlos', [59]));
+  assert.equal(resultado.detalle.perfil, 'revancha');
+  const otraPersonaMismaMesa = puntuar(entrada('mesa4-andrea', [85]));
+  assert.equal(otraPersonaMismaMesa.detalle.perfil, 'normal');
+});
