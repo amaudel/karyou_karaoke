@@ -393,3 +393,17 @@ export async function historialDeNoches(limite = 30) {
       .all(limite),
   );
 }
+
+/** Revancha pendiente del participante, derivada de la ultima actuacion valida. */
+export async function revanchaPendiente(sessionId, participantId) {
+  const filas = await (await getDb()).prepare(
+    'select total, detail from scores where session_id = ? and participant_id = ? order by id desc limit 15',
+  ).all(Number(sessionId), Number(participantId));
+  for (const fila of filas) {
+    let detalle = {};
+    try { detalle = JSON.parse(fila.detail || '{}'); } catch { /* puntuacion historica */ }
+    if (detalle.abandono) continue;
+    return Number(fila.total) >= 55 && Number(fila.total) <= 64;
+  }
+  return false;
+}
