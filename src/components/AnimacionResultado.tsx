@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { tic, revelar, resultado as sonidoResultado } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
 
@@ -134,169 +133,85 @@ export default function AnimacionResultado({
     ? resultado.total - resultado.revanchaAnterior : null;
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#0a0618] via-[#120b29] to-[#080312] px-8 py-6 text-center select-none">
-      
-      {resultado?.total === 100 && revelado && <div aria-hidden="true" className="pointer-events-none absolute inset-0 border-[10px] border-amber-300/50 animate-pulse" />}
-      {/* ------------------------------------------------ Luces de Escenario / Disco */}
-      <div className="animar-disco pointer-events-none absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-purple-600/20 via-pink-500/10 to-transparent blur-3xl" />
-      <div className="animar-disco pointer-events-none absolute -right-40 -bottom-40 h-[600px] w-[600px] rounded-full bg-gradient-to-tl from-amber-500/20 via-indigo-600/10 to-transparent blur-3xl" style={{ animationDirection: 'reverse' }} />
-      
-      {/* Confeti Flotante */}
-      {revelado && (resultado.tier === 'exceptional' || resultado.tier === 'excellent' || esTop) && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          {[...Array(16)].map((_, i) => (
-            <div
-              key={i}
-              className="animar-confeti absolute text-xl"
-              style={{
-                left: `${(i * 6.5) % 100}%`,
-                top: `-20px`,
-                animationDelay: `${(i % 5) * 350}ms`,
-                animationDuration: `${2.5 + (i % 3) * 0.5}s`,
-              }}
-            >
-              {['🎉', '✨', '⭐', '🎤', '🔥', '🎵', '💫'][i % 7]}
-            </div>
+    <section className="karyou-score-screen relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#130923] via-[#1c0d36] to-[#080414] text-center text-white" aria-label="Resultado de karaoke">
+      <div aria-hidden="true" className="karyou-score-glow pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(168,85,247,0.22),transparent_65%)]" />
+      {revelado && resultado?.total === 100 && <div aria-hidden="true" className="pointer-events-none absolute inset-1 rounded-xl border-4 border-amber-300/60" />}
+      {revelado && (resultado?.tier === 'exceptional' || resultado?.tier === 'excellent') && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={i} className="animar-confeti absolute text-base"
+              style={{ left: `${(i * 17 + 5) % 95}%`, top: '-18px', animationDelay: `${i * 120}ms` }}>
+              {['✦', '★', '🎉', '✧'][i % 4]}
+            </span>
           ))}
         </div>
       )}
-
-      {esRevancha && revelado && (
-        <div className="relative z-10 mb-3 rounded-full border-2 border-orange-300/70 bg-orange-950/60 px-6 py-2 text-lg font-black text-amber-200 animar-score-pop">
-          🔥 ¡RESULTADO DE LA REVANCHA!
-        </div>
-      )}
-      {/* ------------------------------------------------ Cabecera del Cantante */}
-      <div className="relative z-10 max-w-2xl">
-        <div className="inline-block rounded-full bg-purple-950/60 px-4 py-1 border border-purple-500/30 text-xs font-semibold tracking-widest text-purple-300 uppercase shadow-lg shadow-purple-900/20 mb-2">
-          {resultado?.tier ? (BADGE_TIER[resultado.tier] ?? 'RESULTADO DEL SHOW') : 'CALCULANDO RESULTADO…'}
-        </div>
-        
-        <h2 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-5xl">
-          {resultado?.nickname ?? 'Cantante'}
-        </h2>
-        
-        {resultado?.mesa && <p className="mt-1 text-sm font-bold text-amber-300">🪑 {resultado.mesa}</p>}
-        <p className="mt-1 truncate text-base text-purple-200/70">
-          🎵 <span className="font-semibold text-purple-100">{resultado?.song_title ?? 'Canción'}</span> · {resultado?.artist ?? 'Artista'}
-        </p>
-      </div>
-
-      {/* ------------------------------------------------ Fase 1: Analizando con Ecualizador */}
-      {!revelado && (
-        <div className="relative z-10 mt-8 w-full max-w-lg flex flex-col items-center">
-          
-          {/* Ecualizador Gráfico Animado */}
-          <div className="flex h-16 items-end justify-center gap-2 mb-6 px-4 py-2 rounded-xl bg-purple-950/30 border border-purple-800/20 backdrop-blur-md">
-            {[1, 2, 3, 4, 3, 2, 1, 4, 2, 3, 1, 4].map((eqClass, i) => (
-              <div
-                key={i}
-                className={`w-2.5 rounded-t-sm bg-gradient-to-t from-purple-600 via-pink-500 to-amber-400 animar-eq-${eqClass}`}
-                style={{ animationDelay: `${i * 75}ms` }}
-              />
-            ))}
-          </div>
-
-          <p aria-live="polite" className="text-xl font-medium tracking-wide text-purple-200 animate-pulse">
-            {FRASES[frase]}
+      <div className="karyou-score-content relative z-10 flex h-full min-h-0 w-full flex-col items-center justify-center gap-[clamp(3px,1.2cqh,10px)] px-[clamp(8px,2cqw,24px)] py-[clamp(5px,1.3cqh,14px)]">
+        <div className="w-full min-w-0 shrink-0">
+          <p className="text-[clamp(9px,1.65cqh,12px)] font-black uppercase tracking-[0.15em] text-amber-300">
+            {esRevancha && revelado ? '🔥 RESULTADO DE LA REVANCHA' : (resultado?.tier ? BADGE_TIER[resultado.tier] : '🎙️ TU MOMENTO EN EL ESCENARIO')}
           </p>
-
-          <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-purple-950/80 border border-purple-700/30 p-0.5">
-            <div className="animar-progreso h-full w-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 shadow-lg shadow-pink-500/50" />
-          </div>
-
-          {aplausos > 0 && (
-            <div className="mt-4 flex items-center gap-2 rounded-full bg-amber-500/15 px-4 py-1.5 border border-amber-400/30 text-amber-300 text-sm font-semibold animate-bounce">
-              <span>👏</span>
-              <span>¡{aplausos} {aplausos === 1 ? 'persona ovacionó el show!' : 'personas ovacionaron el show!'}</span>
-            </div>
-          )}
+          <h2 className="mt-0.5 truncate text-[clamp(19px,5cqh,39px)] font-black leading-tight tracking-tight" title={resultado?.nickname ?? 'Cantante'}>
+            {resultado?.nickname ?? 'Cantante'}
+          </h2>
+          {resultado?.mesa && <p className="text-[clamp(10px,1.8cqh,13px)] font-bold text-amber-200">🪑 {resultado.mesa}</p>}
+          <p className="mx-auto max-w-[92%] truncate text-[clamp(10px,1.95cqh,14px)] text-purple-200/80" title={`${resultado?.song_title ?? 'Canción'} · ${resultado?.artist ?? 'Artista'}`}>
+            🎵 {resultado?.song_title ?? 'Canción'} · {resultado?.artist ?? 'Artista'}
+          </p>
         </div>
-      )}
 
-      {/* ------------------------------------------------ Fase 2 y 3: Revelación Épica */}
-      {revelado && (
-        <div className="relative z-10 mt-6 flex flex-col items-center">
-          
-          {/* Subpuntajes Tarjetas Neón */}
-          <div className="flex justify-center gap-6 sm:gap-8">
-            {[
-              { nombre: 'Ritmo', valor: resultado.rhythm, icono: '🥁', retardo: 0 },
-              { nombre: 'Energía', valor: resultado.energy, icono: '⚡', retardo: 200 },
-              { nombre: 'Interpretación', valor: resultado.interpretation, icono: '🎭', retardo: 400 },
-            ].map((m) => (
-              <div
-                key={m.nombre}
-                className="animar-aparecer flex flex-col items-center rounded-2xl bg-purple-950/40 border border-purple-500/25 px-5 py-3 shadow-xl backdrop-blur-md min-w-[100px]"
-                style={{ animationDelay: `${m.retardo}ms` }}
-              >
-                <span className="text-lg mb-0.5">{m.icono}</span>
-                <p className="text-[11px] font-bold tracking-wider text-purple-300 uppercase">
-                  {m.nombre}
-                </p>
-                <p className="mt-1 text-3xl font-black text-white tabular-nums">{m.valor}</p>
-              </div>
-            ))}
+        {!revelado ? (
+          <div className="flex w-full max-w-md flex-col items-center gap-3">
+            <div className="flex h-12 items-end gap-1.5" aria-hidden="true">
+              {[1,2,3,4,3,2,1,4,2,3].map((eq, i) => <span key={i} className={`w-2 rounded-t bg-pink-400 animar-eq-${eq}`} style={{ animationDelay: `${i * 75}ms` }} />)}
+            </div>
+            <p className="text-[clamp(13px,2.5cqh,19px)] font-bold text-purple-200">{FRASES[frase]}</p>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-purple-950/80"><div className="animar-progreso h-full rounded-full bg-gradient-to-r from-purple-500 to-amber-300" /></div>
+            {aplausos > 0 && <p className="text-sm text-amber-300">👏 {aplausos} aplausos</p>}
           </div>
+        ) : (
+          <>
+            <div className="grid w-full max-w-[490px] shrink-0 grid-cols-3 gap-[clamp(4px,1.3cqw,12px)]">
+              {[
+                { nombre: 'Ritmo', valor: resultado.rhythm, icono: '🥁' },
+                { nombre: 'Energía', valor: resultado.energy, icono: '⚡' },
+                { nombre: 'Interpretación', valor: resultado.interpretation, icono: '🎭' },
+              ].map((item) => (
+                <div key={item.nombre} className="rounded-xl border border-purple-400/25 bg-purple-900/35 px-1 py-[clamp(3px,0.9cqh,9px)]">
+                  <p className="text-[clamp(12px,2.2cqh,18px)]" aria-hidden="true">{item.icono}</p>
+                  <p className="text-[clamp(8px,1.55cqh,11px)] font-black uppercase tracking-wide text-purple-200">{item.nombre}</p>
+                  <p className="text-[clamp(17px,4cqh,29px)] font-black leading-tight tabular-nums">{item.valor}</p>
+                </div>
+              ))}
+            </div>
 
-          {(fase === "total" || fase === "mensaje") && resultado.total >= 90 && (
-            <div aria-hidden="true" className="karyou-show-halo pointer-events-none absolute left-1/2 top-24 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-400/20 blur-3xl" />
-          )}
-          {/* Gran Revelación del Puntaje Principal */}
-          <div className="relative mt-6 flex flex-col items-center">
-            
-            {/* Trofeo de Galardón para TOP 3 o High Tier */}
-            {esTop && (
-              <div className="animar-aparecer mb-1 flex items-center justify-center">
-                <Image
-                  src="/images/trophy.jpg"
-                  alt="Trofeo Karaoke"
-                  width={110}
-                  height={110}
-                  className="rounded-full border-2 border-amber-400/80 shadow-2xl shadow-amber-500/40 object-cover"
-                />
-              </div>
-            )}
-
-            <p className="text-xs font-bold tracking-[0.35em] text-purple-300/80 uppercase mb-1">
-              PUNTUACIÓN FINAL
-            </p>
-
-            {/* Número Gigante Estilo Neón · animación solo cuando se revela el total */}
-            <div className="relative">
-              <p className={`text-[6rem] sm:text-[7rem] leading-none font-black tabular-nums bg-gradient-to-b ${colorGradiente} bg-clip-text text-transparent animar-neon ${fase === 'total' || fase === 'mensaje' ? 'karyou-score-reveal' : ''}`}>
+            <div className="flex min-h-0 shrink-0 flex-col items-center justify-center">
+              <p className="text-[clamp(8px,1.55cqh,11px)] font-bold uppercase tracking-[0.22em] text-purple-300">Puntuación final</p>
+              <p aria-live="polite" className={`karyou-score-number bg-gradient-to-b ${colorGradiente} bg-clip-text text-[clamp(56px,15cqh,114px)] font-black leading-none text-transparent tabular-nums ${fase === 'total' || fase === 'mensaje' ? 'karyou-score-reveal' : ''}`}>
                 {fase === 'subpuntajes' ? '—' : fase === 'mensaje' ? resultado.total : contador}
               </p>
             </div>
 
-            {/* Mensaje de Logro y Posición en Ranking */}
             {(fase === 'total' || fase === 'mensaje') && (
-              <div className="karyou-rank-enter mt-3 flex flex-col items-center">
-                <p className={`text-3xl font-black tracking-wide bg-gradient-to-r ${colorGradiente} bg-clip-text text-transparent drop-shadow-lg`}>
-                  {resultado.total === 100 ? '👑 ¡LEYENDA DEL KARAOKE!' : resultado.total === 99 ? '🏆 ¡ACTUACIÓN EXTRAORDINARIA!' : MENSAJES[resultado.tier] ?? ''}
+              <div className="flex w-full min-w-0 max-w-[94%] shrink-0 flex-col items-center gap-[clamp(2px,0.5cqh,6px)]">
+                <p className="text-balance text-[clamp(13px,3.1cqh,23px)] font-black leading-tight text-amber-200">
+                  {resultado.total === 100 ? '👑 ¡LEYENDA DEL KARAOKE!' : resultado.total === 99 ? '🏆 ¡ACTUACIÓN EXTRAORDINARIA!' : MENSAJES[resultado.tier] ?? '🎤 ¡SIGUE CANTANDO!'}
                 </p>
-                
                 {fase === 'mensaje' && diferencia !== null && (
-                  <div className="mt-3 rounded-xl border border-orange-400/50 bg-orange-950/50 px-5 py-2 text-base font-black text-orange-100">
-                    {resultado.revanchaAnterior} → {resultado.total} puntos · {diferencia > 0 ? `¡SUBISTE ${diferencia}!` : diferencia === 0 ? '¡EMPATE!' : '¡SIGUE LA FIESTA!'}
-                  </div>
+                  <p className="rounded-full border border-orange-400/40 bg-orange-950/50 px-3 py-1 text-[clamp(10px,1.9cqh,14px)] font-black text-orange-100">
+                    {resultado.revanchaAnterior} → {resultado.total} · {diferencia > 0 ? `¡SUBISTE ${diferencia}!` : diferencia === 0 ? '¡EMPATE!' : '¡SIGUE LA FIESTA!'}
+                  </p>
                 )}
                 {fase === 'mensaje' && mio && (
-                  <div className="mt-3 flex items-center gap-2 rounded-full bg-amber-500/20 px-5 py-2 border border-amber-400/40 text-amber-200 font-extrabold text-base shadow-lg shadow-amber-900/30">
-                    <span>🏆</span>
-                    <span>
-                      {mio.posicion === 1
-                        ? '¡NUEVO #1 EN EL RANKING!'
-                        : `PUESTO #${mio.posicion} DE LA NOCHE`}
-                    </span>
-                  </div>
+                  <p className="text-[clamp(10px,1.85cqh,13px)] font-bold text-purple-200">
+                    🏆 {mio.posicion === 1 ? '¡NUEVO #1 EN EL RANKING!' : `PUESTO #${mio.posicion} DE LA NOCHE`}
+                  </p>
                 )}
               </div>
             )}
-          </div>
-        </div>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </section>
   );
 }
-
