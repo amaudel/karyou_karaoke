@@ -263,6 +263,7 @@ export default function AnimacionResultado({
             )}
             {fase === 'mensaje' && patrocinio && (
               <p className="karyou-ad-sponsor" aria-label="Promoción del establecimiento">
+                {patrocinio.bar_logo && <img src={patrocinio.bar_logo} alt="" className="mr-2 inline-block h-5 w-7 align-middle object-contain" />}
                 ✦ {patrocinio.bar_name} presenta · {patrocinio.title}
               </p>
             )}
