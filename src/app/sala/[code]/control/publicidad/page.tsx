@@ -47,8 +47,9 @@ export default async function PublicidadBar({params,searchParams}:Props){
       ) : (
         <>
           {error && <p role="alert" className="rounded-xl border border-red-400/40 bg-red-950/30 p-4 text-red-100">{MENSAJES[error] || 'Revisa la configuración e inténtalo nuevamente.'}</p>}
+          {ok==='logo'&&<p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 p-4 text-emerald-200">Logo actualizado para las promociones del bar.</p>}
           {ok==='creada'&& <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 p-4 text-emerald-200">Imagen guardada como borrador. Actívala cuando esté lista para la TV.</p>}
-          <PublicidadEditor code={code} barNombre={bar.name}
+          <PublicidadEditor code={code} barNombre={bar.name} logoUrl={bar.logo_url}
             campanias={await listarCampanias(bar.id)}
             storageOk={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}/>
           <p className="rounded-xl border border-purple-500/20 p-4 text-xs text-purple-300">
