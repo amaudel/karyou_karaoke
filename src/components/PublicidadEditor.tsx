@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { guardarPromocionAction, estadoPromocionAction, marcaBarAction, logoBarAction } from '@/app/sala/[code]/control/publicidad/actions';
+import { guardarPromocionAction, estadoPromocionAction, marcaBarAction, logoBarAction, editarPromocionAction, eliminarPromocionAction } from '@/app/sala/[code]/control/publicidad/actions';
 
 export type CampaniaAdmin = {
   id:number;title:string;image_url:string;placement:string;layout:string;
@@ -184,12 +184,39 @@ export default function PublicidadEditor({ code,barNombre,campanias,storageOk,lo
                       <button className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white">▶ Activar</button></form> :
                     <form action={estadoPromocionAction}><input type="hidden" name="code" value={code}/><input type="hidden" name="id" value={c.id}/><input type="hidden" name="status" value="paused"/>
                       <button className="rounded-lg bg-purple-700 px-3 py-2 text-xs font-bold text-white">⏸ Pausar</button></form>}
-                  <form action={estadoPromocionAction} onSubmit={e=>{if(!window.confirm('¿Archivar esta campaña? Dejará de mostrarse en la TV.'))e.preventDefault();}}>
+                  <form action={eliminarPromocionAction} onSubmit={e=>{if(!window.confirm('¿Eliminar definitivamente esta promoción y su archivo de imagen?'))e.preventDefault();}}>
                     <input type="hidden" name="code" value={code}/><input type="hidden" name="id" value={c.id}/><input type="hidden" name="status" value="archived"/>
-                    <button className="rounded-lg border border-red-400/30 px-3 py-2 text-xs font-bold text-red-200">Archivar</button>
+                    <button className="rounded-lg border border-red-400/30 px-3 py-2 text-xs font-bold text-red-200">Eliminar</button>
                   </form>
                   <a href={c.image_url} target="_blank" rel="noreferrer" className="rounded-lg border border-purple-400/30 px-3 py-2 text-xs font-bold text-purple-200">Ver imagen ↗</a>
                 </div>
+                <details className="mt-2 border-t border-purple-400/20 pt-3">
+                  <summary className="cursor-pointer text-sm font-bold text-amber-200">✎ Editar datos de campaña</summary>
+                  <form action={editarPromocionAction} className="mt-3 grid grid-cols-2 gap-2">
+                    <input type="hidden" name="code" value={code}/>
+                    <input type="hidden" name="id" value={c.id}/>
+                    <input type="hidden" name="inicioIso" value={c.starts_at??''}/>
+                    <input type="hidden" name="finIso" value={c.ends_at??''}/>
+                    <label className="col-span-2 text-xs text-purple-200">Título
+                      <input name="titulo" required maxLength={90} defaultValue={c.title} className="mt-1 w-full rounded-lg border border-purple-400/30 bg-purple-950 px-3 py-2 text-white"/>
+                    </label>
+                    <label className="text-xs text-purple-200">Ubicación
+                      <select name="placement" defaultValue={c.placement} className="mt-1 w-full rounded-lg border border-purple-400/30 bg-purple-950 px-2 py-2 text-white">
+                        <option value="espera">Espera</option><option value="entre">Entre canciones</option><option value="resultado">Firma del resultado</option>
+                      </select>
+                    </label>
+                    <label className="text-xs text-purple-200">Duración (8–12 s en espera)
+                      <input name="duracion" type="number" min={3} max={12} defaultValue={c.duration_seconds} className="mt-1 w-full rounded-lg border border-purple-400/30 bg-purple-950 px-2 py-2 text-white"/>
+                    </label>
+                    <label className="col-span-2 text-xs text-purple-200">Prioridad
+                      <select name="prioridad" defaultValue={c.priority} className="mt-1 w-full rounded-lg border border-purple-400/30 bg-purple-950 px-2 py-2 text-white">
+                        <option value="0">Normal</option><option value="1">Destacada</option><option value="2">Alta</option>
+                      </select>
+                    </label>
+                    <button type="submit" className="col-span-2 rounded-lg bg-fuchsia-700 p-2 text-xs font-black text-white">Guardar cambios</button>
+                    <p className="col-span-2 text-xs text-purple-300">Para cambiar la imagen o las fechas, crea una campaña nueva y elimina esta.</p>
+                  </form>
+                </details>
               </div>
             </article>
           ))}
