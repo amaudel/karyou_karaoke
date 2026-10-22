@@ -22,6 +22,12 @@ test('la TV tiene un envoltorio React ESTABLE alrededor de #yt-player', () => {
   const placeholder = /<div id="yt-player" class="h-full w-full"><\/div>/;
   assert.match(visible, placeholder);
   assert.match(oculto, placeholder, 'el reproductor sobrevive montado mientras se revela el resultado');
+
+  // Recrea la sustitución que hace YouTube: el DIV desaparece, pero el
+  // contenedor controlado por React todavía tiene la clase hidden.
+  const youtubeSustituyoNodo = oculto.replace(placeholder, '<iframe id="yt-player" src="https://www.youtube.com/embed/test"></iframe>');
+  assert.match(youtubeSustituyoNodo, /data-karyou-youtube-shell="1" class="hidden"[^>]*><iframe/);
+  assert.doesNotMatch(youtubeSustituyoNodo, /<div id="yt-player"/);
 });
 
 test('el escenario no intenta ocultar un nodo que YouTube sustituye', () => {
