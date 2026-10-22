@@ -41,6 +41,7 @@ export default function EscenarioTV({
   enlace,
   onCantar,
   onTerminar,
+  onInicioCelebracion,
   onDescartar,
 }: {
   code: string;
@@ -58,6 +59,7 @@ export default function EscenarioTV({
   enlace: string;
   onCantar?: () => Promise<{ok:boolean;error?:string}>;
   onTerminar?: (telemetria: Telemetria) => Promise<ResultadoVista | null>;
+  onInicioCelebracion?: (turnoId: number) => Promise<unknown>;
   onDescartar?: () => void;
 }) {
   const router = useRouter();
@@ -198,6 +200,7 @@ export default function EscenarioTV({
             ranking={ranking}
             aplausos={aplausos}
             patrocinio={promociones.find(p=>p.placement==='resultado') ?? null}
+            onInicio={() => onInicioCelebracion?.(puntuacionVisible.queue_item_id)}
             onFin={() => setMostrando(false)}
           />
         ) : estado.celebracionRestanteMs > 0 ? (
