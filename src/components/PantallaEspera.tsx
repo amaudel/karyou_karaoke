@@ -28,6 +28,7 @@ export default function PantallaEspera({
   promociones = [],
   audioListo = false,
   onActivarTV,
+  onInicioCelebracion,
 }: {
   code: string;
   modo?: 'casa' | 'bar';
@@ -40,6 +41,7 @@ export default function PantallaEspera({
   promociones?: PromocionBar[];
   audioListo?: boolean;
   onActivarTV?: () => void;
+  onInicioCelebracion?: (turnoId: number) => Promise<unknown>;
 }) {
   const [mostrando, setMostrando] = useState(() => Boolean(resultado && resultadoReciente));
   const [activoLocal, setActivoLocal] = useState(false);
@@ -80,6 +82,7 @@ export default function PantallaEspera({
             resultado={resultado}
             ranking={ranking}
             aplausos={0}
+            onInicio={() => onInicioCelebracion?.(resultado.queue_item_id)}
             onFin={() => setMostrando(false)}
           />
         </div>
