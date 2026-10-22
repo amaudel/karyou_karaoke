@@ -19,7 +19,8 @@ import {
   cambiarModoSesion,
   cambiarEspectaculoSesion,
 } from '@/db/sessions.mjs';
-import { cerrarTurnoConPuntuacion, aplaudir } from '@/db/puntuaciones.mjs';
+import { cerrarTurnoConPuntuacion, aplaudir, notaAnteriorRevancha } from '@/db/puntuaciones.mjs';
+import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
 import { registrarNuevaSalaBar } from '@/db/bar-ads.mjs';
 
@@ -315,9 +316,25 @@ export async function terminarTurnoAction(
   },
 ) {
   const limpio = normalizarCodigo(code);
-  await cerrarTurnoConPuntuacion(limpio, queueItemId, telemetria);
+  const cierre = await cerrarTurnoConPuntuacion(limpio, queueItemId, telemetria);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
+
+  // DEVOLVER la nota REAL del servidor a la TV que finalizó la canción.
+  // Antes se esperaba exclusivamente al sondeo de 2 segundos: al cambiar
+  // inmediatamente la cola, la nueva canción podía impedir la celebración.
+  if (!cierre.ok || !cierre.resultado) return null;
+  const guardado = cierre.resultado as ResultadoVista;
+  let perfil = '';
+  try { perfil = JSON.parse(guardado.detail || '{}').perfil; }
+  catch { /* resultados antiguos */ }
+  const sesion = perfil === 'revancha' ? await obtenerSesion(limpio) : null;
+  return {
+    ...guardado,
+    revanchaAnterior: sesion
+      ? await notaAnteriorRevancha(sesion.id, guardado.participant_id, guardado.id)
+      : null,
+  } satisfies ResultadoVista;
 }
 
 /** Retira de la cola un turno cuya pista no se pudo reproducir, sin puntuar al cantante. */
