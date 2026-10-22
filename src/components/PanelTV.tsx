@@ -1,6 +1,7 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
+import AnuncioBar,{type PromocionBar} from './AnuncioBar';
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -24,6 +25,7 @@ export default function PanelTV({
   ranking,
   rankingMesas,
   tieneRevancha,
+  promociones = [],
   qr,
   enlace,
   onDescartar,
@@ -39,6 +41,7 @@ export default function PanelTV({
   ranking: FilaRankingVista[];
   rankingMesas: FilaMesaVista[];
   tieneRevancha: boolean;
+  promociones?: PromocionBar[];
   qr: string;
   enlace: string;
   onDescartar?: () => void;
@@ -83,6 +86,9 @@ export default function PanelTV({
 
   return (
     <>
+      {modo === 'bar' && !sonando && promociones.some(p=>p.placement==='entre') && (
+        <AnuncioBar promociones={promociones} ubicacion="entre" compacto />
+      )}
       {/* ------------------------------------------------ quién canta ahora */}
       <div className="rounded-2xl border border-pink-500/35 bg-gradient-to-br from-purple-900/45 via-purple-950/50 to-pink-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">

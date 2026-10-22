@@ -21,6 +21,7 @@ import {
 } from '@/db/sessions.mjs';
 import { cerrarTurnoConPuntuacion, aplaudir } from '@/db/puntuaciones.mjs';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
+import { registrarNuevaSalaBar } from '@/db/bar-ads.mjs';
 
 /** Nombre de la cookie con la que un invitado se identifica en una sala. */
 function nombreCookie(code: string) {
@@ -41,6 +42,17 @@ export async function crearSesionAction(formData: FormData) {
   const modo = modoRaw === 'bar' ? 'bar' : 'casa';
   const porDefecto = modo === 'bar' ? 'Karaoke Bar' : 'Karaoke en casa';
   const { code } = await crearSesion(nombre || porDefecto, modo);
+  if (modo === 'bar') {
+    const sesion = await obtenerSesion(code);
+    if (!sesion) throw new Error('No se pudo vincular el bar a la sala.');
+    const jar = await cookies();
+    const anterior = jar.get('karyou_bar_owner')?.value;
+    const token = await registrarNuevaSalaBar(sesion.id, sesion.name, anterior);
+    jar.set('karyou_bar_owner', token, {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict', path: '/', maxAge: 60 * 60 * 24 * 180,
+    });
+  }
 
   revalidatePath('/');
   // Se abre directamente la pantalla de TV: es lo primero que hace falta.

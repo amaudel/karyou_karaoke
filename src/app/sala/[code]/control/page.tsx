@@ -41,6 +41,14 @@ export default async function ControlSala({ params }: { params: Promise<{ code: 
         </Link>
       </header>
       <AccesosTV />
+      {sesion.modo === 'bar' && (
+        <Link href={`/sala/${code}/control/publicidad`}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-amber-400/45 bg-gradient-to-r from-[#3a114d] via-[#381047] to-[#19092a] p-5 shadow-lg shadow-fuchsia-950/40 transition hover:border-amber-300">
+          <span><strong className="block text-lg font-black text-amber-200">✦ Karyou Bar Ads</strong>
+            <span className="text-sm text-purple-100">Subir promos, programarlas y presentarlas como parte del espectáculo</span></span>
+          <span className="shrink-0 rounded-xl bg-fuchsia-700 px-4 py-2 text-sm font-black text-white">Administrar ↗</span>
+        </Link>
+      )}
       {sesion.status === 'finished' ? (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6">
           <h2 className="text-xl font-black">🏆 La noche ha terminado</h2>

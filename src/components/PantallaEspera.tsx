@@ -1,6 +1,7 @@
 'use client';
 
 import RankingMesas from './RankingMesas';
+import AnuncioBar, {type PromocionBar} from './AnuncioBar';
 import Link from 'next/link';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,6 +25,7 @@ export default function PantallaEspera({
   rankingMesas,
   resultado,
   resultadoReciente,
+  promociones = [],
   audioListo = false,
   onActivarTV,
 }: {
@@ -35,6 +37,7 @@ export default function PantallaEspera({
   rankingMesas: FilaMesaVista[];
   resultado: ResultadoVista | null;
   resultadoReciente: boolean;
+  promociones?: PromocionBar[];
   audioListo?: boolean;
   onActivarTV?: () => void;
 }) {
@@ -211,6 +214,10 @@ export default function PantallaEspera({
 
         {/* ============================================== RIGHT COLUMN: RANKING DE LA NOCHE */}
         <div className="flex flex-col rounded-3xl border border-amber-500/30 bg-purple-950/30 p-5 shadow-xl backdrop-blur-md lg:col-span-5">
+          {modo === 'bar' && promociones.some(p=>p.placement==='espera') ? (
+            <AnuncioBar promociones={promociones} ubicacion="espera"/>
+          ) : (<>
+
           
           <div>
             {/* Header */}
@@ -303,6 +310,7 @@ export default function PantallaEspera({
             </p>
           </div>
 
+          </>)}
         </div>
 
       </div>

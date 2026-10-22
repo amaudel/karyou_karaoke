@@ -4,6 +4,7 @@ import path from 'node:path';
 const nextConfig: NextConfig = {
   // node:sqlite es un módulo integrado de Node; no debe intentar empaquetarse.
   serverExternalPackages: ['node:sqlite'],
+  experimental: { serverActions: { bodySizeLimit: '4mb' } },
 
   // Sin esto, Next encuentra un package-lock.json en la carpeta del usuario y deduce
   // que la raíz del proyecto está ahí, lo que rompe el trazado de archivos del build.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import KaraokeStage, { type CancionEnEscenario, type Telemetria } from './KaraokeStage';
 import PanelTV from './PanelTV';
 import AnimacionResultado from './AnimacionResultado';
+import type {PromocionBar} from './AnuncioBar';
 import { despertar } from '@/lib/sonido.mjs';
 import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
@@ -30,6 +31,7 @@ export default function EscenarioTV({
   ranking,
   rankingMesas,
   tieneRevancha,
+  promociones = [],
   aplausos,
   oyentes,
   qr,
@@ -46,6 +48,7 @@ export default function EscenarioTV({
   ranking: FilaRankingVista[];
   rankingMesas: FilaMesaVista[];
   tieneRevancha: boolean;
+  promociones?: PromocionBar[];
   aplausos: number;
   oyentes: number;
   qr: string;
@@ -139,6 +142,7 @@ export default function EscenarioTV({
             resultado={resultado}
             ranking={ranking}
             aplausos={aplausos}
+            patrocinio={promociones.find(p=>p.placement==='resultado') ?? null}
             onFin={() => setMostrando(false)}
           />
         ) : null
@@ -155,6 +159,7 @@ export default function EscenarioTV({
           ranking={ranking}
           rankingMesas={rankingMesas}
           tieneRevancha={tieneRevancha}
+          promociones={promociones}
           qr={qr}
           enlace={enlace}
           onDescartar={onDescartar}
