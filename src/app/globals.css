@@ -611,3 +611,25 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-rank-seal {animation:none!important;}
 }
 .karyou-tv-fx[data-espectaculo="discreto"] .karyou-rank-seal {animation:none;}
+
+/* Karyou Bar Ads: marco de estudio para creatividades TERMINADAS.
+   Contenido de la imagen preservado con object-fit:contain. */
+.karyou-bar-ad {
+  box-shadow:0 14px 35px rgba(10,2,25,.55), inset 0 0 30px rgba(180,64,229,.08);
+}
+@keyframes karyou-ad-reveal {
+  from {opacity:.3;transform:translateY(9px) scale(.985);}
+  to {opacity:1;transform:translateY(0) scale(1);}
+}
+.karyou-ad-reveal {
+  animation:karyou-ad-reveal .6s ease-out both;
+}
+.karyou-ad-sponsor {
+  max-width:95%; font-size:clamp(9px,1.9cqh,13px);
+  font-weight:800; letter-spacing:.03em;
+  color:#fde68a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+@media (prefers-reduced-motion:reduce) {
+  .karyou-ad-reveal {animation:none!important;}
+}
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-ad-reveal {animation:none;}
