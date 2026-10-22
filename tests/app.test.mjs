@@ -37,6 +37,7 @@ const {
   pedirCancion,
   cancelarPeticion,
   iniciarTurno,
+  iniciarTurnoMovil,
   cerrarTurno,
   moverEnCola,
   leerCola,
