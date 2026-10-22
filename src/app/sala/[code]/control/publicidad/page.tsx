@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { obtenerSesion, normalizarCodigo } from '@/db/sessions.mjs';
 import { propietarioDeSala, listarCampanias } from '@/db/bar-ads.mjs';
 import PublicidadEditor from '@/components/PublicidadEditor';
+import { blobConfigurado } from '@/lib/blob-config.mjs';
 
 export const dynamic='force-dynamic';
 type Props={params:Promise<{code:string}>,searchParams:Promise<{error?:string,ok?:string}>};
@@ -51,7 +52,7 @@ export default async function PublicidadBar({params,searchParams}:Props){
           {ok==='creada'&& <p role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 p-4 text-emerald-200">Imagen guardada como borrador. Actívala cuando esté lista para la TV.</p>}
           <PublicidadEditor code={code} barNombre={bar.name} logoUrl={bar.logo_url}
             campanias={await listarCampanias(bar.id)}
-            storageOk={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}/>
+            storageOk={blobConfigurado()}/>
           <p className="rounded-xl border border-purple-500/20 p-4 text-xs text-purple-300">
             Privacidad: la administración se vincula a una cookie segura de este navegador. No compartas acceso de administrador; si pierdes la cookie, necesitarás recuperar el establecimiento mediante soporte.
           </p>
