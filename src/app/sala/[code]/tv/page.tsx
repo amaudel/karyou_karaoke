@@ -4,6 +4,8 @@ import EscenarioTV from '@/components/EscenarioTV';
 import PantallaEspera from '@/components/PantallaEspera';
 import Refresco from '@/components/Refresco';
 import PodioFinal from '@/components/PodioFinal';
+import { promocionesDeSala } from '@/db/bar-ads.mjs';
+import type {PromocionBar} from '@/components/AnuncioBar';
 import { obtenerSesion, estadoSesion, normalizarCodigo } from '@/db/sessions.mjs';
 import { ultimoResultado, rankingDeSesion, rankingMesasDeSesion, contarAplausos, revanchaPendiente, notaAnteriorRevancha } from '@/db/puntuaciones.mjs';
 import { urlSala } from '@/lib/red.mjs';
@@ -45,6 +47,7 @@ export default async function PantallaPage({ params }: Props) {
   const rankingMesas = estado.modo === 'bar' ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
   const aplausos = estado.sonando ? await contarAplausos(estado.sonando.id) : 0;
   const oyentes = estado.participantes?.length ?? 0;
+  const promociones = estado.modo === 'bar' ? await promocionesDeSala(sesion.id) as PromocionBar[] : [];
 
   const enlace = urlSala(code);
   // PNG en datos, no SVG embebido: evita inyectar HTML generado.
@@ -72,6 +75,7 @@ export default async function PantallaPage({ params }: Props) {
           qr={qr}
           ranking={ranking}
           rankingMesas={rankingMesas}
+          promociones={promociones}
           resultado={resultado}
           resultadoReciente={resultadoReciente}
         /></div>
@@ -101,6 +105,7 @@ export default async function PantallaPage({ params }: Props) {
         ranking={ranking}
         rankingMesas={rankingMesas}
         tieneRevancha={tieneRevancha}
+        promociones={promociones}
         aplausos={aplausos}
         oyentes={oyentes}
         qr={qr}
