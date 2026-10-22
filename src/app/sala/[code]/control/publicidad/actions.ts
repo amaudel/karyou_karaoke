@@ -3,11 +3,12 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { put } from '@vercel/blob';
+import { put, del } from '@vercel/blob';
 import { obtenerSesion, normalizarCodigo } from '@/db/sessions.mjs';
 import {
   propietarioDeSala, crearCampania, cambiarEstadoCampania,
-  actualizarMarcaBar, actualizarLogoBar
+  actualizarMarcaBar, actualizarLogoBar,
+  editarCampania, campaniaDelBar, eliminarCampania
 } from '@/db/bar-ads.mjs';
 
 function ruta(code: string) { return `/sala/${code}/control/publicidad`; }
@@ -107,4 +108,41 @@ export async function logoBarAction(formData:FormData) {
   revalidatePath(ruta(code));
   revalidatePath(`/sala/${code}/tv`);
   redirect(`${ruta(code)}?ok=logo`);
+}
+
+export async function editarPromocionAction(formData:FormData) {
+  const code=normalizarCodigo(String(formData.get('code')??''));
+  const {bar}=await autorizacion(code);
+  const id=Number(formData.get('id'));
+  const input={
+    title:String(formData.get('titulo')??''),
+    placement:String(formData.get('placement')??'espera'),
+    duration_seconds:Number(formData.get('duracion')??10),
+    priority:Number(formData.get('prioridad')??0),
+    starts_at:String(formData.get('inicioIso')??'')||null,
+    ends_at:String(formData.get('finIso')??'')||null,
+  };
+  await editarCampania(bar.id,id,input);
+  revalidatePath(ruta(code));
+  revalidatePath(`/sala/${code}/tv`);
+  redirect(`${ruta(code)}?ok=editada`);
+}
+
+export async function eliminarPromocionAction(formData:FormData) {
+  const code=normalizarCodigo(String(formData.get('code')??''));
+  const {bar}=await autorizacion(code);
+  const id=Number(formData.get('id'));
+  const imagen=await campaniaDelBar(bar.id,id);
+  if(!imagen) redirect(ruta(code));
+  // Evita eliminar la referencia en BD si Blob no puede borrarse.
+  if(!process.env.BLOB_READ_WRITE_TOKEN) redirect(`${ruta(code)}?error=storage`);
+  try { await del(imagen.blob_path); }
+  catch(e) {
+    console.error('Karyou Ads: fallo al eliminar Blob',e instanceof Error?e.message:'error');
+    redirect(`${ruta(code)}?error=eliminar`);
+  }
+  await eliminarCampania(bar.id,id);
+  revalidatePath(ruta(code));
+  revalidatePath(`/sala/${code}/tv`);
+  redirect(`${ruta(code)}?ok=eliminada`);
 }
