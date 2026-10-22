@@ -34,6 +34,7 @@ export default function AnuncioBar({
   }, [indice, elegibles.length, ubicacion, elegibles.map(p => p.id).join(',')]);
   if (!elegibles.length) return null;
   const item = elegibles[indice % elegibles.length];
+  if (!item) return null;
   return (
     <aside className={`karyou-bar-ad group relative isolate overflow-hidden rounded-3xl border border-amber-400/40 bg-[#13091f] text-white shadow-xl shadow-fuchsia-950/40 ${compacto ? 'p-3' : 'p-4'}`}
       aria-label="Promoción del establecimiento">
