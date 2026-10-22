@@ -151,7 +151,7 @@ export default function AnimacionResultado({
   const mio = resultado ? ranking.find((r) => r.participant_id === resultado.participant_id) : undefined;
   const revelado = fase !== 'analizando' && resultado !== null;
   const esRevancha = (() => { try { return JSON.parse(resultado?.detail || '{}').perfil === 'revancha'; } catch { return false; } })();
-  const insignia = resultado ? letraArcade(resultado.total) : 'C';
+  const insignia = letraArcade(resultado?.total ?? 0);
   const diferencia = esRevancha && typeof resultado?.revanchaAnterior === 'number'
     ? resultado.total - resultado.revanchaAnterior : null;
 
