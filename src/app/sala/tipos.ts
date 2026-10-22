@@ -40,6 +40,7 @@ export type EstadoVista = {
   modo: 'casa' | 'bar';
   limitePendientes: number;
   segundosEnPantalla: number;
+  celebracionRestanteMs: number;
   sonando: FilaVista | null;
   esperando: FilaVista[];
   cola: FilaVista[];
