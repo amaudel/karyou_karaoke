@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { letraArcade } from '@/domain/scoring/rangos-visuales.mjs';
 import { tic, revelar, resultado as sonidoResultado } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
 
@@ -27,14 +28,6 @@ const COLOR_TIER: Record<string, string> = {
   excellent: 'from-purple-400 to-pink-300 text-purple-300',
   exceptional: 'from-amber-300 via-yellow-200 to-amber-500 text-amber-300',
 };
-
-/** Distintivos arcade: solo presentación, nunca modifican el motor de puntuación. */
-export function letraArcade(total: number): 'S' | 'A' | 'B' | 'C' {
-  if (total >= 90) return 'S';
-  if (total >= 78) return 'A';
-  if (total >= 65) return 'B';
-  return 'C';
-}
 
 const BADGE_TIER: Record<string, string> = {
   exceptional: '🔥 ÍDOLO DEL KARAOKE 🔥',
