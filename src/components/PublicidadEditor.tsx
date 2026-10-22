@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { guardarPromocionAction, estadoPromocionAction, marcaBarAction } from '@/app/sala/[code]/control/publicidad/actions';
+import { guardarPromocionAction, estadoPromocionAction, marcaBarAction, logoBarAction } from '@/app/sala/[code]/control/publicidad/actions';
 
 export type CampaniaAdmin = {
   id:number;title:string;image_url:string;placement:string;layout:string;
@@ -12,8 +12,8 @@ export type CampaniaAdmin = {
 const localizacion: Record<string,string> = {
   espera:'TV sin canciones',entre:'Entre canciones',resultado:'Puntuación final',
 };
-export default function PublicidadEditor({ code,barNombre,campanias,storageOk }:{
-  code:string;barNombre:string;campanias:CampaniaAdmin[];storageOk:boolean;
+export default function PublicidadEditor({ code,barNombre,campanias,storageOk,logoUrl }:{
+  code:string;barNombre:string;campanias:CampaniaAdmin[];storageOk:boolean;logoUrl?:string|null;
 }) {
   const [ubicacion,setUbicacion] = useState<'espera'|'entre'|'resultado'>('espera');
   const [archivo,setArchivo] = useState<string|null>(null);
@@ -65,6 +65,19 @@ export default function PublicidadEditor({ code,barNombre,campanias,storageOk }:
           </label>
           <button className="self-end rounded-xl border border-amber-400/60 px-4 py-3 font-bold text-amber-200 hover:bg-amber-400/10" type="submit">Guardar nombre</button>
         </form>
+        <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-purple-400/20 bg-purple-950/25 p-3">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="Logo del bar" className="h-16 w-20 rounded-lg bg-black/40 object-contain"/>
+          ) : <span className="flex h-16 w-20 items-center justify-center rounded-lg border border-purple-400/30 bg-black/40 text-3xl">🍸</span>}
+          <form action={logoBarAction} className="flex min-w-[180px] flex-1 flex-wrap items-end gap-2">
+            <input type="hidden" name="code" value={code}/>
+            <label className="min-w-[180px] flex-1 text-xs font-bold text-purple-200">Logo del bar (opcional, máximo 1 MB)
+              <input type="file" name="logo" required accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-xs text-purple-100"/>
+            </label>
+            <button type="submit" disabled={!storageOk} className="rounded-lg border border-fuchsia-400/40 px-3 py-2 text-xs font-bold text-fuchsia-100 disabled:opacity-40">Subir logo</button>
+          </form>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-3xl border border-amber-400/35 bg-gradient-to-br from-[#281042] via-[#1a0b33] to-[#11071d] p-4 shadow-xl shadow-purple-950/40 sm:p-6">
