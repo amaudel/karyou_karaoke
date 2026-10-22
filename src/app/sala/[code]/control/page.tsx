@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import CuentaRegresivaCelebracion from '@/components/CuentaRegresivaCelebracion';
+import { propietarioDeSala } from '@/db/bar-ads.mjs';
 import { notFound } from 'next/navigation';
 import Refresco from '@/components/Refresco';
 import AccesosTV from '@/components/AccesosTV';
@@ -7,12 +10,13 @@ import { rankingDeSesion, rankingMesasDeSesion } from '@/db/puntuaciones.mjs';
 import {
   moverAction, iniciarTurnoAction, cerrarTurnoAction,
   cambiarModoSesionAction, cambiarEspectaculoAction, terminarSesionAction,
+  omitirCelebracionBarAction,
 } from '../../actions';
 import type { EstadoVista, FilaRankingVista, FilaMesaVista } from '../../tipos';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ControlSala({ params }: { params: Promise<{ code: string }> }) {
+export default async function ControlSala({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{error?:string}> }) {
   const { code: raw } = await params;
   const code = normalizarCodigo(raw);
   const sesion = await obtenerSesion(code);
@@ -23,6 +27,9 @@ export default async function ControlSala({ params }: { params: Promise<{ code: 
   const mesas = sesion.modo === 'bar'
     ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
   const enPantalla = estado.sonando ?? estado.esperando[0] ?? null;
+  const {error} = await searchParams;
+  const tokenDuenio = (await cookies()).get('karyou_bar_owner')?.value;
+  const puedeOmitir = sesion.modo === 'bar' && Boolean(await propietarioDeSala(sesion.id, tokenDuenio));
   const pendientes = estado.sonando ? estado.esperando : estado.esperando.slice(1);
 
   return (
@@ -41,6 +48,24 @@ export default async function ControlSala({ params }: { params: Promise<{ code: 
         </Link>
       </header>
       <AccesosTV />
+      {error === 'CELEBRACION_EN_CURSO' && (
+        <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-950/50 p-3 text-amber-200">
+          La celebración está protegida. Espera a que se habilite Play.
+        </p>
+      )}
+      {estado.celebracionRestanteMs > 0 && (
+        <div className="space-y-3">
+          <CuentaRegresivaCelebracion restanteMs={estado.celebracionRestanteMs} />
+          {puedeOmitir && (
+            <form action={omitirCelebracionBarAction} className="text-center">
+              <input type="hidden" name="code" value={code}/>
+              <button type="submit" className="rounded-xl border border-amber-500/50 px-4 py-2 text-xs font-bold text-amber-200">
+                ⏭ Omitir celebración (solo propietario del bar)
+              </button>
+            </form>
+          )}
+        </div>
+      )}
       {sesion.modo === 'bar' && (
         <Link href={`/sala/${code}/control/publicidad`}
           className="flex items-center justify-between gap-3 rounded-2xl border border-amber-400/45 bg-gradient-to-r from-[#3a114d] via-[#381047] to-[#19092a] p-5 shadow-lg shadow-fuchsia-950/40 transition hover:border-amber-300">
@@ -67,7 +92,7 @@ export default async function ControlSala({ params }: { params: Promise<{ code: 
                   <p className="mt-2 text-xs text-purple-300">{estado.sonando ? 'Cantando ahora' : 'En espera de iniciar'}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {!estado.sonando && (
+                  {!estado.sonando && estado.celebracionRestanteMs <= 0 && (
                     <form action={iniciarTurnoAction}>
                       <input type="hidden" name="code" value={code} />
                       <input type="hidden" name="queueItemId" value={enPantalla.id} />
