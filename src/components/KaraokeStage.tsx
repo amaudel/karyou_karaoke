@@ -147,6 +147,7 @@ export default function KaraokeStage({
   onTerminar,
   onDescartar,
   reproduciendoRemoto = false,
+  celebracionRestanteMs = 0,
 }: {
   cancion: CancionEnEscenario;
   /** Contenido del panel lateral. Si no se pasa, no se dibuja ninguno. */
@@ -162,13 +163,15 @@ export default function KaraokeStage({
    */
   reemplazo?: React.ReactNode;
   /** Se llama al pulsar Cantar, antes de reproducir. Para avisar al servidor. */
-  onCantar?: () => void;
+  onCantar?: () => Promise<{ok:boolean;error?:string}>;
   /** Se llama cuando el video termina solo, con lo que el reproductor observó. */
   onTerminar?: (telemetria: Telemetria) => void;
   /** Se llama para descartar el turno sin penalizar cuando la pista falla en TV. */
   onDescartar?: () => void;
   /** Indica si el turno fue iniciado remotamente desde el móvil del cantante. */
   reproduciendoRemoto?: boolean;
+  /** Cuenta regresiva controlada desde el servidor, no el cliente. */
+  celebracionRestanteMs?: number;
 }) {
   const playerRef = useRef<YTPlayer | null>(null);
   const [playerListo, setPlayerListo] = useState(false);
@@ -188,6 +191,9 @@ export default function KaraokeStage({
   useEffect(() => {
     alTerminarRef.current = onTerminar;
   }, [onTerminar]);
+
+  const bloqueoRef = useRef(celebracionRestanteMs > 0);
+  useEffect(() => { bloqueoRef.current = celebracionRestanteMs > 0; }, [celebracionRestanteMs]);
 
   const alCantarRef = useRef(onCantar);
   useEffect(() => {
@@ -284,6 +290,12 @@ export default function KaraokeStage({
             if (destruido) return;
             const S = window.YT!.PlayerState;
             if (evento.data === S.PLAYING) {
+              // Los controles nativos de YouTube NO pueden eludir la protección.
+              if (bloqueoRef.current) {
+                try { player.pauseVideo(); } catch { /* reproductor desapareciendo */ }
+                setEstado('listo');
+                return;
+              }
               setEstado('reproduciendo');
               setAvisoAudio(false);
               const idActual = videoIdRef.current;
@@ -291,7 +303,15 @@ export default function KaraokeStage({
                 reproducidoRemotoIdRef.current = idActual;
                 if (!reproduciendoRemotoRef.current && notificadoCantarIdRef.current !== idActual) {
                   notificadoCantarIdRef.current = idActual;
-                  alCantarRef.current?.();
+                  void Promise.resolve(alCantarRef.current?.()).then((respuesta) => {
+                    if (respuesta && !respuesta.ok) {
+                      try { player.pauseVideo(); } catch { /* reproductor no disponible */ }
+                      setEstado('listo');
+                    }
+                  }).catch(() => {
+                    try { player.pauseVideo(); } catch { /* reproductor no disponible */ }
+                    setEstado('listo');
+                  });
                 }
               }
             } else if (evento.data === S.PAUSED) {
@@ -525,7 +545,7 @@ export default function KaraokeStage({
   /* --------------------------------------------------------------- acciones */
 
   const cantar = useCallback(() => {
-    if (!playerRef.current) return;
+    if (!playerRef.current || celebracionRestanteMs > 0) return;
     const reanudando = estado === 'pausado';
     if (!reanudando) {
       reiniciarTelemetria();
@@ -537,7 +557,17 @@ export default function KaraokeStage({
     setAvisoAudio(false);
     setEstado('cargando_pista');
     // Avisa al servidor antes de arrancar: en la TV esto marca quién está cantando.
-    onCantar?.();
+    // Preserva el gesto de Play para políticas de autoplay de Smart TV, pero si
+    // el servidor niega el inicio por celebración concurrente, se pausa al instante.
+    void Promise.resolve(onCantar?.()).then(respuesta => {
+      if (respuesta && !respuesta.ok) {
+        try { playerRef.current?.pauseVideo(); } catch { /* vídeo detenido */ }
+        setEstado('listo');
+      }
+    }).catch(() => {
+      try { playerRef.current?.pauseVideo(); } catch { /* vídeo detenido */ }
+      setEstado('listo');
+    });
     try {
       if (reanudando || !videoIdActual) {
         playerRef.current.playVideo();
@@ -547,7 +577,7 @@ export default function KaraokeStage({
     } catch {
       setEstado('error');
     }
-  }, [estado, onCantar, videoIdActual, reiniciarTelemetria]);
+  }, [estado, onCantar, videoIdActual, reiniciarTelemetria, celebracionRestanteMs]);
 
   const pausar = useCallback(() => {
     // Se cuenta solo la pausa explícita del cantante. Una pausa publicitaria no
@@ -624,10 +654,10 @@ export default function KaraokeStage({
                   <button
                     type="button"
                     onClick={cantar}
-                    disabled={estado === 'cargando'}
+                    disabled={estado === 'cargando' || celebracionRestanteMs > 0}
                     className="rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 px-6 py-3 font-extrabold text-white shadow-lg transition hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-pink-400/50 disabled:opacity-50"
                   >
-                    {estado === 'cargando' ? 'Cargando…' : '🎤 Cantar'}
+                    {celebracionRestanteMs > 0 ? '🔒 Celebrando…' : estado === 'cargando' ? 'Cargando…' : '🎤 Cantar'}
                   </button>
                 )}
 
@@ -645,6 +675,7 @@ export default function KaraokeStage({
                   <button
                     type="button"
                     onClick={cantar}
+                    disabled={celebracionRestanteMs > 0}
                     className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-extrabold text-white shadow-lg transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-400/50"
                   >
                     ▶ Continuar
@@ -675,9 +706,11 @@ export default function KaraokeStage({
                 {estado === 'cargando' && 'Preparando el reproductor…'}
                 {estado === 'listo' &&
                   !avisoAudio &&
-                  (reproduciendoRemoto
-                    ? 'Iniciando reproducción…'
-                    : 'Listo. Pulsa Cantar en la TV o dale Play desde tu celular.')}
+                  (celebracionRestanteMs > 0
+                    ? '🏆 Celebrando. La canción se habilitará en breve.'
+                    : reproduciendoRemoto
+                      ? 'Iniciando reproducción…'
+                      : 'Listo. Pulsa Cantar en la TV o dale Play desde tu celular.')}
                 {estado === 'cargando_pista' && 'Cargando la pista…'}
                 {estado === 'reproduciendo' && '🎶 Cantando en vivo'}
                 {estado === 'pausado' && 'En pausa.'}

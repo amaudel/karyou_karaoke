@@ -22,7 +22,8 @@ import {
 import { cerrarTurnoConPuntuacion, aplaudir, notaAnteriorRevancha } from '@/db/puntuaciones.mjs';
 import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
-import { registrarNuevaSalaBar } from '@/db/bar-ads.mjs';
+import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
+import { omitirCelebracion } from '@/domain/celebracion.mjs';
 
 /** Nombre de la cookie con la que un invitado se identifica en una sala. */
 function nombreCookie(code: string) {
@@ -176,8 +177,10 @@ export async function cancelarAction(formData: FormData) {
 
 export async function iniciarTurnoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
-  await iniciarTurno(code, Number(formData.get('queueItemId')));
-
+  const res = await iniciarTurno(code, Number(formData.get('queueItemId')));
+  if (!res.ok) {
+    redirect(`/sala/${code}/control?error=${encodeURIComponent(res.error)}`);
+  }
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
   redirect(formData.get('origen') === 'control' ? `/sala/${code}/control` : `/sala/${code}/tv`);
@@ -298,9 +301,10 @@ export async function terminarSesionAction(formData: FormData) {
 /** Marca el turno como sonando. La llama el reproductor al pulsar Cantar. */
 export async function empezarTurnoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
-  await iniciarTurno(limpio, queueItemId);
+  const res = await iniciarTurno(limpio, queueItemId);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
+  return res;
 }
 
 /** Cierra el turno y calcula la puntuación. La llama el reproductor al terminar. */
@@ -343,4 +347,19 @@ export async function descartarTurnoRotoAction(code: string, queueItemId: number
   await cerrarTurno(limpio, queueItemId, 'skipped');
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
+}
+
+/** Solo dueño verificado del bar puede omitir la espera de celebración. */
+export async function omitirCelebracionBarAction(formData: FormData) {
+  const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  const sesion = await obtenerSesion(code);
+  if (!sesion || sesion.modo !== 'bar') throw new Error('Disponible solamente en Modo Bar.');
+  const token = (await cookies()).get('karyou_bar_owner')?.value;
+  const propietario = await propietarioDeSala(sesion.id, token);
+  if (!propietario) throw new Error('No autorizado a omitir la celebración.');
+  await omitirCelebracion(sesion.id);
+  revalidatePath(`/sala/${code}`);
+  revalidatePath(`/sala/${code}/tv`);
+  revalidatePath(`/sala/${code}/control`);
+  redirect(`/sala/${code}/control`);
 }

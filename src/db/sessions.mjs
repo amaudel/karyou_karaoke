@@ -13,6 +13,7 @@
  *     Poner autenticación ahí sería ceremonia sin beneficio para uso personal.
  */
 import { randomBytes } from 'node:crypto';
+import { asegurarCelebraciones, celebracionPendiente } from '../domain/celebracion.mjs';
 import { getDb, plano, planas } from './client.mjs';
 
 /** Alfabeto Crockford base32: sin I, L, O ni U, que se confunden al dictarlos. */
@@ -636,7 +637,12 @@ export async function iniciarTurno(codigo, queueItemId) {
     .get(Number(queueItemId), sesion.id);
   if (!item) return { ok: false, error: 'TURNO_NO_EXISTE' };
 
+  await asegurarCelebraciones();
+  let bloqueadoMs = 0;
   await db.transaction(async (tx) => {
+    // Comprobar DENTRO de la transacción evita carreras con cerrarTurnoConPuntuacion.
+    bloqueadoMs = await celebracionPendiente(sesion.id, Date.now(), tx);
+    if (bloqueadoMs > 0) return;
     // Cualquier otro turno marcado como sonando vuelve a la cola.
     await tx
       .prepare(
@@ -653,6 +659,7 @@ export async function iniciarTurno(codigo, queueItemId) {
       .run(item.id);
   });
 
+  if (bloqueadoMs > 0) return { ok: false, error: 'CELEBRACION_EN_CURSO', restanteMs: bloqueadoMs };
   return { ok: true };
 }
 
@@ -845,12 +852,14 @@ export async function estadoSesion(codigo) {
   const segundosEnPantalla = !sonando
     ? await segundosEsperandoEnTV(sesion.id, esperando[0])
     : 0;
+  const celebracionRestanteMs = await celebracionPendiente(sesion.id);
 
   return {
     sesion,
     modo: sesion.modo,
     limitePendientes: limitePendientesDe(sesion.modo),
     segundosEnPantalla,
+    celebracionRestanteMs,
     participantes: await listarParticipantes(sesion.id),
     cola,
     sonando,

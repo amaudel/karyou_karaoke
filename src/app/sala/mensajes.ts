@@ -27,6 +27,7 @@ export const MENSAJES: Record<string, string> = {
   TURNO_RESERVADO_BAR:
     'En Modo Bar el turno está reservado para el cantante durante 60 segundos antes de poder saltarlo.',
   YA_ESTA_CANTANDO: 'La canción ya está sonando en la TV.',
+  CELEBRACION_EN_CURSO: 'Estamos celebrando el resultado anterior. Play estará disponible cuando termine la cuenta regresiva.',
   URL_INVALIDA: 'Pega un enlace válido de YouTube (ej. https://youtu.be/... o youtube.com/watch?v=...).',
   NO_EMBEBIBLE:
     'Ese canal de YouTube bloquea la reproducción en sitios externos. Prueba con otra versión de karaoke.',
