@@ -12,6 +12,7 @@ import {
   SEGUNDOS_DESBLOQUEO_BAR,
 } from '@/db/sessions.mjs';
 import Refresco from '@/components/Refresco';
+import CuentaRegresivaCelebracion from '@/components/CuentaRegresivaCelebracion';
 import {
   BotonPedir,
   BotonEntrar,
@@ -162,6 +163,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
 
   const limiteSala = estado.limitePendientes ?? LIMITE_PENDIENTES;
   const esModoBar = estado.modo === 'bar';
+  const celebracionBloqueada = estado.celebracionRestanteMs > 0;
 
   const viendoFavoritos = consulta.toLowerCase() === 'favoritos';
   const pareceUrlYoutube = /(?:https?:\/\/|youtu\.be\/|youtube\.com\/)/i.test(consulta);
@@ -192,7 +194,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
   const enTurnoTV = estado.sonando ?? estado.esperando[0] ?? null;
   const esMiTurnoEnTV = Boolean(enTurnoTV && enTurnoTV.participant_id === quien.participante.id);
   const puedoDarPlay = Boolean(
-    !estado.sonando && estado.esperando[0] && (estado.modo === 'casa' || esMiTurnoEnTV),
+    !celebracionBloqueada && !estado.sonando && estado.esperando[0] && (estado.modo === 'casa' || esMiTurnoEnTV),
   );
   const turnoInactivoDesbloqueado =
     !esModoBar || estado.segundosEnPantalla >= SEGUNDOS_DESBLOQUEO_BAR;
@@ -301,6 +303,8 @@ export default async function SalaPage({ params, searchParams }: Props) {
               </form>
             )}
           </div>
+        ) : celebracionBloqueada && estado.esperando[0] ? (
+          <CuentaRegresivaCelebracion restanteMs={estado.celebracionRestanteMs} />
         ) : puedoDarPlay && estado.esperando[0] ? (
           <div className="rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-br from-emerald-950/60 via-purple-950/80 to-purple-900/60 p-5 shadow-2xl backdrop-blur-md">
             <div className="flex items-center gap-2">
