@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import type {PromocionBar} from './AnuncioBar';
 import ParticulasResultado from './ParticulasResultado';
 import { letraArcade } from '@/domain/scoring/rangos-visuales.mjs';
 import { tic, revelar, resultado as sonidoResultado } from '@/lib/sonido.mjs';
@@ -47,11 +48,13 @@ export default function AnimacionResultado({
   resultado,
   ranking,
   aplausos,
+  patrocinio = null,
   onFin,
 }: {
   resultado: ResultadoVista | null;
   ranking: FilaRankingVista[];
   aplausos: number;
+  patrocinio?: PromocionBar | null;
   onFin: () => void;
 }) {
   const [fase, setFase] = useState<Fase>('analizando');
@@ -257,6 +260,11 @@ export default function AnimacionResultado({
             )}
             {fase === 'mensaje' && diferencia === null && mio && (
               <p className="karyou-showcase-extra">🏆 {mio.posicion === 1 ? '¡NUEVO #1 EN EL RANKING!' : `PUESTO #${mio.posicion} DE LA NOCHE`}</p>
+            )}
+            {fase === 'mensaje' && patrocinio && (
+              <p className="karyou-ad-sponsor" aria-label="Promoción del establecimiento">
+                ✦ {patrocinio.bar_name} presenta · {patrocinio.title}
+              </p>
             )}
           </footer>
         </>
