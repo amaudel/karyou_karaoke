@@ -113,6 +113,12 @@ export async function cambiarEstadoCampania(venueId,id,status) {
   return r.changes > 0;
 }
 
+export async function actualizarLogoBar(venueId, url) {
+  if (typeof url !== 'string' || !url.startsWith('https://')) throw new Error('URL inválida.');
+  await asegurarBarAds();
+  await (await getDb()).prepare('update bar_venues set logo_url=? where id=?').run(url,venueId);
+}
+
 export async function actualizarMarcaBar(venueId, nombre) {
   const limpio=String(nombre||'').trim().slice(0,100);
   if (!limpio) throw new Error('Escribe el nombre del establecimiento.');
