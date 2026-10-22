@@ -7,7 +7,7 @@ import { put } from '@vercel/blob';
 import { obtenerSesion, normalizarCodigo } from '@/db/sessions.mjs';
 import {
   propietarioDeSala, crearCampania, cambiarEstadoCampania,
-  actualizarMarcaBar
+  actualizarMarcaBar, actualizarLogoBar
 } from '@/db/bar-ads.mjs';
 
 function ruta(code: string) { return `/sala/${code}/control/publicidad`; }
@@ -90,4 +90,21 @@ export async function marcaBarAction(formData:FormData) {
   revalidatePath(ruta(code));
   revalidatePath(`/sala/${code}/tv`);
   redirect(ruta(code));
+}
+
+export async function logoBarAction(formData:FormData) {
+  const code=normalizarCodigo(String(formData.get('code')??''));
+  const {bar}=await autorizacion(code);
+  if (!process.env.BLOB_READ_WRITE_TOKEN) redirect(`${ruta(code)}?error=storage`);
+  const file=formData.get('logo');
+  if(!(file instanceof File) || file.size>1024*1024 || file.size<50) redirect(`${ruta(code)}?error=imagen`);
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(!esImagenReal(file,bytes)) redirect(`${ruta(code)}?error=formato`);
+  const ext=file.type==='image/png'?'png':file.type==='image/jpeg'?'jpg':'webp';
+  const blob=await put(`karyou-bar/${bar.id}/logo-${crypto.randomUUID()}.${ext}`,file,
+    {access:'public',addRandomSuffix:true,contentType:file.type});
+  await actualizarLogoBar(bar.id,blob.url);
+  revalidatePath(ruta(code));
+  revalidatePath(`/sala/${code}/tv`);
+  redirect(`${ruta(code)}?ok=logo`);
 }
