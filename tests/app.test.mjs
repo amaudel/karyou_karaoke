@@ -1654,7 +1654,7 @@ test('celebración protegida 8700 ms en servidor: rechaza Play y no autoavanza',
   assert.equal(res.ok,true);
   const sesion = await obtenerSesion(code);
   const ms = await celebracionPendiente(sesion.id);
-  assert.ok(ms > 0 && ms <= 8700, `protección debe durar 8.7s: ${ms}ms`);
+  assert.ok(ms > 0 && ms <= 11200, `provisional: animación + 2.5s para recibir confirmación TV: ${ms}ms`);
   const durante = await estadoSesion(code);
   assert.ok(durante.celebracionRestanteMs > 0);
   assert.equal(durante.sonando,null,'siguiente no debe arrancar automáticamente');
@@ -1696,4 +1696,61 @@ test('bloqueo de ceremonia tras finalizar de forma manual y omisión explícita'
   assert.equal((await iniciarTurno(code,q2.queueItemId)).error,'CELEBRACION_EN_CURSO');
   await omitirCelebracion(sesion.id);
   assert.equal((await iniciarTurno(code,q2.queueItemId)).ok,true);
+});
+
+test('confirmación de TV sincroniza 8700ms desde el momento en que aparece la nota',async()=>{
+  const { confirmarPresentacionCelebracion, celebracionPendiente, CELEBRACION_MS } =
+    await import('../src/domain/celebracion.mjs');
+  const { code }=await crearSesion('Sincronizar nota real TV','bar');
+  const { code: otraSala }=await crearSesion('Otra sala prueba TV','bar');
+  const a=await unirseSesion(code,'Uno TV Sync',undefined,'Mesa 1');
+  const b=await unirseSesion(code,'Dos TV Sync',undefined,'Mesa 2');
+  const x=await pedirCancion(code,a.token,'wt-pY4mI2rs');
+  const y=await pedirCancion(code,b.token,'U5TiuzOkJEY');
+  assert.ok(x.ok && y.ok);
+  assert.equal((await iniciarTurno(code,x.queueItemId)).ok,true);
+  await envejecerTurno(x.queueItemId,3);
+  assert.equal((await cerrarTurnoConPuntuacion(code,x.queueItemId,{terminoNatural:true,posicionFinal:190})).ok,true);
+  const sesion=await obtenerSesion(code);
+  const otra=await obtenerSesion(otraSala);
+  const provisional=await celebracionPendiente(sesion.id);
+  assert.ok(provisional >= CELEBRACION_MS,'se reserva un breve margen si todavía no se renderiza la TV');
+  assert.equal(await confirmarPresentacionCelebracion(otra.id,x.queueItemId),0,'sala ajena');
+  assert.equal(await confirmarPresentacionCelebracion(sesion.id,y.queueItemId),0,'score inexistente');
+  const confirmado=await confirmarPresentacionCelebracion(sesion.id,x.queueItemId);
+  assert.ok(confirmado > 0 && confirmado <= CELEBRACION_MS,'el inicio real sincroniza el plazo de 8700ms');
+  const db=await getDb();
+  const limite1=Number((await db.prepare('select until_ms from score_ceremonies where session_id=?').get(sesion.id)).until_ms);
+  assert.equal((await iniciarTurno(code,y.queueItemId)).error,'CELEBRACION_EN_CURSO');
+  await confirmarPresentacionCelebracion(sesion.id,x.queueItemId);
+  const limite2=Number((await db.prepare('select until_ms from score_ceremonies where session_id=?').get(sesion.id)).until_ms);
+  assert.equal(limite2,limite1,'refrescar TV no vuelve a extender el bloqueo');
+  await db.prepare('update score_ceremonies set until_ms=? where session_id=?')
+    .run(Date.now()-1,sesion.id);
+  assert.equal(await confirmarPresentacionCelebracion(sesion.id,x.queueItemId),0,'no reabrir bloqueos vencidos');
+  assert.equal((await iniciarTurno(code,y.queueItemId)).ok,true,'se habilita Play al finalizar');
+});
+
+test('cada nueva puntuación permite una única confirmación distinta',async()=>{
+  const { confirmarPresentacionCelebracion }=await import('../src/domain/celebracion.mjs');
+  const { code }=await crearSesion('Dos resultados con presentación');
+  const a=await unirseSesion(code,'Cantante sincrono A');
+  const b=await unirseSesion(code,'Cantante sincrono B');
+  const x=await pedirCancion(code,a.token,'wt-pY4mI2rs');
+  const y=await pedirCancion(code,b.token,'U5TiuzOkJEY');
+  assert.equal((await iniciarTurno(code,x.queueItemId)).ok,true);
+  await envejecerTurno(x.queueItemId,3);
+  await cerrarTurnoConPuntuacion(code,x.queueItemId,{terminoNatural:true});
+  const sesion=await obtenerSesion(code);
+  await confirmarPresentacionCelebracion(sesion.id,x.queueItemId);
+  const db=await getDb();
+  await db.prepare('update score_ceremonies set until_ms=? where session_id=?').run(Date.now()-1,sesion.id);
+  assert.equal((await iniciarTurno(code,y.queueItemId)).ok,true);
+  await envejecerTurno(y.queueItemId,3);
+  await cerrarTurnoConPuntuacion(code,y.queueItemId,{terminoNatural:true});
+  const pendiente=await db.prepare('select count(*) as n from score_ceremony_presentations where session_id=?')
+    .get(sesion.id);
+  assert.equal(Number(pendiente.n),0,'la nueva nota elimina la confirmación anterior');
+  assert.ok((await confirmarPresentacionCelebracion(sesion.id,y.queueItemId))>0);
+  assert.equal(await confirmarPresentacionCelebracion(sesion.id,x.queueItemId),0,'score anterior ya no controla la TV');
 });
