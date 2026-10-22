@@ -447,3 +447,58 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-showcase-footer-neon .karyou-showcase-message {font-size:clamp(12px,3.6cqh,22px);}
 }
 @media (prefers-reduced-motion:reduce) {.karyou-award-aura {animation:none !important;}}
+
+/* Recursos definitivos de propuesta 2: archivos bajo public/images/karyou/.
+   Las puntuaciones, nombres y textos permanecen renderizados en React. */
+.karyou-score-showcase {
+  background-image:
+    linear-gradient(180deg,rgba(10,2,29,.36) 0%,rgba(18,2,35,.65) 19%,rgba(13,3,30,.18) 48%,rgba(9,2,24,.40) 100%),
+    url('/images/karyou/escenario.webp');
+  background-size:cover; background-position:center;
+}
+.karyou-showcase-header {
+  background:linear-gradient(90deg,transparent,rgba(15,3,34,.55) 15%,rgba(15,3,34,.55) 85%,transparent);
+  border-radius:12px;text-align:center;
+  padding:clamp(2px,.6cqh,6px);
+}
+.karyou-showcase-metric {
+  position:relative;
+  background-image: url('/images/karyou/tarjeta-horizontal.webp');
+  background-size:100% 100%;
+  background-color:rgba(22,5,46,.5);
+  border:0;box-shadow:none;
+  padding-inline:clamp(10px,1.8cqw,20px);
+}
+.karyou-showcase-metric p, .karyou-showcase-metric strong {
+  text-shadow:0 2px 8px #1c062e;
+}
+.karyou-showcase-main-score {
+  background-image:linear-gradient(90deg,rgba(16,4,37,.35),rgba(16,4,37,.35)),
+    url('/images/karyou/tarjeta-vertical.webp');
+  background-size:100% 100%;
+  border:0;box-shadow:none;
+}
+.karyou-showcase-award {isolation:isolate;}
+.karyou-award-art {
+  position:absolute;top:3%;left:50%;
+  transform:translateX(-50%);
+  height:72%;width:auto;max-width:105%;object-fit:contain;
+  z-index:2;
+  filter:drop-shadow(0 0 12px rgba(251,191,36,.52));
+}
+.karyou-award-podium {
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:116%;max-width:none;height:30%;object-fit:fill;z-index:1;
+}
+.karyou-showcase-sparks.karyou-particles-photo {
+  background:url('/images/karyou/confeti.webp') center / cover no-repeat;
+  opacity:.72;mix-blend-mode:screen;
+}
+.karyou-showcase-sparks.karyou-particles-photo > span {display:none;}
+@container (max-width:600px) {
+  .karyou-award-art {height:75%;width:auto;max-width:110%;}
+  .karyou-award-podium {height:28%;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .karyou-particles-photo {opacity:.38;}
+}
