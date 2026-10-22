@@ -1634,3 +1634,65 @@ test('regresión TV Bar: cada actuación puntúa cuando todavía hay canciones e
     resultado:s2,reciente:true,ultimoMostradoId:s1.id,turnoSonandoId:null,
   }), 'la segunda nota también aparece con la cola vacía');
 });
+
+test('celebración protegida 8700 ms en servidor: rechaza Play y no autoavanza',async()=>{
+  const { CELEBRACION_MS, celebracionPendiente, omitirCelebracion } =
+    await import('../src/domain/celebracion.mjs');
+  assert.equal(CELEBRACION_MS,8700);
+  const { code } = await crearSesion('Celebración protegida');
+  const ana = await unirseSesion(code, 'Ana Celebracion');
+  const luis = await unirseSesion(code, 'Luis Celebracion');
+  const p1 = await pedirCancion(code, ana.token,'wt-pY4mI2rs');
+  const p2 = await pedirCancion(code, luis.token,'U5TiuzOkJEY');
+  assert.equal(p1.ok,true); assert.equal(p2.ok,true);
+  assert.equal((await iniciarTurno(code,p1.queueItemId)).ok,true);
+  await envejecerTurno(p1.queueItemId,4);
+  const res = await cerrarTurnoConPuntuacion(code,p1.queueItemId,{
+    terminoNatural:true,posicionFinal:190
+  });
+  assert.equal(res.ok,true);
+  const sesion = await obtenerSesion(code);
+  const ms = await celebracionPendiente(sesion.id);
+  assert.ok(ms > 0 && ms <= 8700, `protección debe durar 8.7s: ${ms}ms`);
+  const durante = await estadoSesion(code);
+  assert.ok(durante.celebracionRestanteMs > 0);
+  assert.equal(durante.sonando,null,'siguiente no debe arrancar automáticamente');
+  assert.equal(durante.esperando[0].id,p2.queueItemId,'la cola se conserva');
+  const intentoTV = await iniciarTurno(code,p2.queueItemId);
+  assert.equal(intentoTV.ok,false);
+  assert.equal(intentoTV.error,'CELEBRACION_EN_CURSO');
+  const intentoMovil = await iniciarTurnoMovil(code,luis.token,p2.queueItemId);
+  assert.equal(intentoMovil.ok,false);
+  assert.equal(intentoMovil.error,'CELEBRACION_EN_CURSO');
+  // Una petición duplicada no reinicia el contador.
+  assert.equal((await cerrarTurnoConPuntuacion(code,p1.queueItemId,{terminoNatural:true})).ok,true);
+  assert.ok((await celebracionPendiente(sesion.id)) <= ms);
+  // Simular reloj vencido editando la reserva; sin dormir 8.7 segundos.
+  const db = await getDb();
+  await db.prepare('update score_ceremonies set until_ms=? where session_id=?')
+    .run(Date.now()-1000,sesion.id);
+  assert.equal(await celebracionPendiente(sesion.id),0);
+  assert.equal((await estadoSesion(code)).sonando,null,'expirar no inicia turno');
+  assert.equal((await iniciarTurno(code,p2.queueItemId)).ok,true,'Play se habilita');
+  const inicio=await estadoSesion(code);
+  assert.equal(inicio.sonando?.id,p2.queueItemId);
+  await omitirCelebracion(sesion.id);
+  assert.equal(await celebracionPendiente(sesion.id),0);
+});
+
+test('bloqueo de ceremonia tras finalizar de forma manual y omisión explícita',async()=>{
+  const { celebracionPendiente, omitirCelebracion } = await import('../src/domain/celebracion.mjs');
+  const { code } = await crearSesion('Manual con cola','bar');
+  const a = await unirseSesion(code,'Cantante Manual',undefined,'Mesa 1');
+  const b = await unirseSesion(code,'Proximo Manual',undefined,'Mesa 2');
+  const q1 = await pedirCancion(code,a.token,'wt-pY4mI2rs');
+  const q2 = await pedirCancion(code,b.token,'U5TiuzOkJEY');
+  assert.equal((await iniciarTurno(code,q1.queueItemId)).ok,true);
+  await envejecerTurno(q1.queueItemId,2);
+  assert.equal((await cerrarTurnoConPuntuacion(code,q1.queueItemId,{terminoNatural:false})).ok,true);
+  const sesion=await obtenerSesion(code);
+  assert.ok((await celebracionPendiente(sesion.id)) > 0);
+  assert.equal((await iniciarTurno(code,q2.queueItemId)).error,'CELEBRACION_EN_CURSO');
+  await omitirCelebracion(sesion.id);
+  assert.equal((await iniciarTurno(code,q2.queueItemId)).ok,true);
+});
