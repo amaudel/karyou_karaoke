@@ -8,6 +8,7 @@
 import { getDb, plano, planas } from './client.mjs';
 import { obtenerSesion, identificar } from './sessions.mjs';
 import { puntuar, VERSION_MOTOR } from '../domain/scoring/motor.mjs';
+import { asegurarCelebraciones, bloquearDespuesDePuntuar } from '../domain/celebracion.mjs';
 
 /* ------------------------------------------------------------------- tipos
  * @typedef {object} Telemetria
@@ -232,6 +233,7 @@ export async function cerrarTurnoConPuntuacion(codigo, queueItemId, telemetria =
   };
 
   const calculado = puntuar(entradas);
+  await asegurarCelebraciones();
 
   await db.transaction(async (tx) => {
     await tx
@@ -266,6 +268,10 @@ export async function cerrarTurnoConPuntuacion(codigo, queueItemId, telemetria =
         JSON.stringify({ ...entradas, priorScores: entradas.priorScores.length }),
         JSON.stringify(calculado.detalle),
       );
+
+    // La reserva y el resultado se confirman atómicamente. No hay ventana
+    // en la que un cliente pueda arrancar la siguiente canción sin celebrar.
+    await bloquearDespuesDePuntuar(tx, sesion.id, id);
   });
 
   const guardado = await leerResultadoPorTurno(id);
