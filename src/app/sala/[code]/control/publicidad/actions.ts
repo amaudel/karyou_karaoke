@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { put, del } from '@vercel/blob';
+import { blobConfigurado } from '@/lib/blob-config.mjs';
 import { obtenerSesion, normalizarCodigo } from '@/db/sessions.mjs';
 import {
   propietarioDeSala, crearCampania, cambiarEstadoCampania,
@@ -39,7 +40,7 @@ export async function guardarPromocionAction(formData: FormData) {
   if (!(file instanceof File) || file.size<100 || file.size>3*1024*1024) {
     redirect(`${ruta(code)}?error=imagen`);
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) redirect(`${ruta(code)}?error=storage`);
+  if (!blobConfigurado()) redirect(`${ruta(code)}?error=storage`);
   const bytes=new Uint8Array(await file.arrayBuffer());
   if (!esImagenReal(file,bytes)) redirect(`${ruta(code)}?error=formato`);
   const placement=String(formData.get('placement')??'espera');
@@ -96,7 +97,7 @@ export async function marcaBarAction(formData:FormData) {
 export async function logoBarAction(formData:FormData) {
   const code=normalizarCodigo(String(formData.get('code')??''));
   const {bar}=await autorizacion(code);
-  if (!process.env.BLOB_READ_WRITE_TOKEN) redirect(`${ruta(code)}?error=storage`);
+  if (!blobConfigurado()) redirect(`${ruta(code)}?error=storage`);
   const file=formData.get('logo');
   if(!(file instanceof File) || file.size>1024*1024 || file.size<50) redirect(`${ruta(code)}?error=imagen`);
   const bytes=new Uint8Array(await file.arrayBuffer());
@@ -135,7 +136,7 @@ export async function eliminarPromocionAction(formData:FormData) {
   const imagen=await campaniaDelBar(bar.id,id);
   if(!imagen) redirect(ruta(code));
   // Evita eliminar la referencia en BD si Blob no puede borrarse.
-  if(!process.env.BLOB_READ_WRITE_TOKEN) redirect(`${ruta(code)}?error=storage`);
+  if(!blobConfigurado()) redirect(`${ruta(code)}?error=storage`);
   try { await del(imagen.blob_path); }
   catch(e) {
     console.error('Karyou Ads: fallo al eliminar Blob',e instanceof Error?e.message:'error');

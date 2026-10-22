@@ -7,7 +7,7 @@ Promociones propias del establecimiento, diseñadas fuera de Karyou (ChatGPT, Ca
 - Turso: `009_bar_ads.sql` crea `bar_venues`, `bar_rooms`, `bar_campaigns`, `bar_impressions` e índices.
 - Las rutas Ads pueden inicializar idempotentemente sus tablas en Turso si la migración aún no se ha ejecutado en producción.
 - Vercel Blob (store público) guarda archivos y devuelve URL. No se guardan imágenes grandes en SQLite.
-- Requiere que Vercel Storage esté conectado al proyecto **karyou-karaoke** y cree `BLOB_READ_WRITE_TOKEN` en producción. Nunca poner el token en variables `NEXT_PUBLIC_*`.
+- Requiere Vercel Blob conectado al proyecto **karyou-karaoke**. Se admite la integración OIDC moderna (`BLOB_STORE_ID` y credenciales efímeras que Vercel emite automáticamente a las funciones), o el esquema anterior `BLOB_READ_WRITE_TOKEN`. No crear ni compartir claves permanentes cuando OIDC ya esté configurado. Nunca poner credenciales en variables `NEXT_PUBLIC_*`.
 - Límite de imágenes de campaña: 3 MB. Logo: 1 MB. Se valida MIME y firma binaria.
 - Si falta Blob, las pantallas existentes siguen funcionando; el administrador ve carga deshabilitada.
 

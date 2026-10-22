@@ -87,7 +87,7 @@ export default function PublicidadEditor({ code,barNombre,campanias,storageOk,lo
           <p className="mt-2 text-sm text-purple-200">Sube una promoción terminada con ChatGPT, Canva o tu diseñador. Karyou respeta íntegramente la imagen y añade la puesta en escena.</p>
         </div>
         {!storageOk && <div role="alert" className="mb-4 rounded-xl border border-orange-400/50 bg-orange-950/40 p-4 text-sm text-orange-100">
-          La carga estará habilitada cuando el proyecto tenga configurada la conexión con Vercel Blob (<code>BLOB_READ_WRITE_TOKEN</code>).
+          La carga estará habilitada cuando el almacén Vercel Blob esté vinculado al proyecto y se haya desplegado la aplicación. Se admiten credenciales OIDC o token tradicional.
         </div>}
         <form action={guardarPromocionAction} onSubmit={prepararFecha} className="grid gap-5 lg:grid-cols-2">
           <input type="hidden" name="code" value={code}/>
