@@ -38,8 +38,8 @@ const BADGE_TIER: Record<string, string> = {
   under: '🎶 ÁNIMO CANTANTE 🎶',
 };
 
-/** Los cuatro tramos, en milisegundos. Inicio rápido (~0.5s) y celebración final extendida (~4.5s). */
-const TIEMPOS = { analisis: 650, subpuntajes: 900, total: 1400, mensaje: 2200 };
+/** 8.7 segundos de espectáculo; se interrumpe si comienza la siguiente canción. */
+const TIEMPOS = { analisis: 1400, subpuntajes: 1800, total: 2300, mensaje: 3200 };
 
 type Fase = 'analizando' | 'subpuntajes' | 'total' | 'mensaje';
 
@@ -87,7 +87,7 @@ export default function AnimacionResultado({
     const id = window.setInterval(() => {
       setFrase((f) => (f + 1) % FRASES.length);
       tic();
-    }, 450);
+    }, 650);
     return () => window.clearInterval(id);
   }, [fase]);
 
@@ -115,8 +115,8 @@ export default function AnimacionResultado({
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     let veces = 0;
     const id = window.setInterval(() => {
-      if (++veces <= 7) tic();
-    }, 175);
+      if (++veces <= 8) tic();
+    }, 275);
     return () => window.clearInterval(id);
   }, [fase]);
 
@@ -231,7 +231,17 @@ export default function AnimacionResultado({
                 {fase === 'subpuntajes' ? '—' : fase === 'mensaje' ? resultado.total : contador}
               </strong>
               <span>{fase === 'subpuntajes' ? 'PREPARANDO LA NOTA' : (BADGE_TIER[resultado.tier] ?? '¡A SEGUIR CANTANDO!')}</span>
-              {fase === 'mensaje' && <div className={`karyou-arcade-rank karyou-arcade-rank-${insignia}`} aria-label={`Rango visual ${insignia}`}><small>RANGO</small><b>{insignia}</b></div>}
+              {fase === 'mensaje' && (
+                <div className={`karyou-rank-seal karyou-rank-seal-${insignia}`} aria-label={`Sello de rango ${insignia}`}>
+                  <span className="karyou-rank-seal-rays" aria-hidden="true" />
+                  <span className="karyou-rank-seal-ring">
+                    <span className="karyou-rank-seal-crown" aria-hidden="true">♛</span>
+                    <span className="karyou-rank-seal-title">RANGO</span>
+                    <span className="karyou-rank-seal-letter">{insignia}</span>
+                    <span className="karyou-rank-seal-laurels" aria-hidden="true">❧ ✦ ❧</span>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <footer className="karyou-showcase-footer karyou-showcase-footer-neon">

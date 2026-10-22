@@ -549,3 +549,65 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-arcade-rank b {font-size:19px;}
   .karyou-arcade-rank small {font-size:6px;}
 }
+
+/* Sello premium grande, fiel a la referencia elegida, sin archivo adicional.
+   Aparece al terminar el conteo; conserva visible la puntuación y el trofeo. */
+.karyou-showcase-main-score { position:relative; overflow:visible; }
+.karyou-rank-seal {
+  --seal-metal:#fbbf24; --seal-glow:rgba(251,191,36,.55);
+  position:absolute; z-index:9;
+  top:clamp(-17px,-2.8cqh,-9px); right:clamp(-13px,-1.6cqw,-5px);
+  width:clamp(78px,22cqh,128px); height:clamp(78px,22cqh,128px);
+  color:var(--seal-metal); border-radius:50%;
+  filter:drop-shadow(0 4px 8px #140523) drop-shadow(0 0 12px var(--seal-glow));
+  animation:karyou-seal-arrival .65s cubic-bezier(.2,.88,.3,1.15) both;
+  pointer-events:none;
+}
+.karyou-rank-seal-rays {
+  position:absolute; inset:-6%;
+  clip-path:polygon(50% 0%,61% 11%,75% 5%,81% 20%,97% 25%,90% 42%,100% 50%,90% 59%,97% 75%,81% 80%,75% 95%,61% 89%,50% 100%,39% 89%,25% 95%,19% 80%,3% 75%,10% 59%,0 50%,10% 42%,3% 25%,19% 20%,25% 5%,39% 11%);
+  background:linear-gradient(155deg,#fff0aa 2%,var(--seal-metal) 24%,#7d2b89 47%,var(--seal-metal) 69%,#fff0aa 97%);
+  box-shadow:0 0 15px var(--seal-glow);
+}
+.karyou-rank-seal-ring {
+  position:absolute; inset:7%; display:flex; flex-direction:column;align-items:center;
+  justify-content:center; border-radius:50%; isolation:isolate;
+  border:clamp(2px,.55cqh,4px) solid var(--seal-metal);
+  outline:2px solid rgba(255,241,177,.65);
+  outline-offset:-9px;
+  background:radial-gradient(circle at 36% 20%,#653184 0%,#320b55 39%,#170527 100%);
+  box-shadow:inset 0 0 17px rgba(251,191,36,.14),0 0 8px var(--seal-glow);
+  text-align:center;
+}
+.karyou-rank-seal-crown {position:absolute;top:5%;font-size:clamp(13px,3.4cqh,22px);line-height:1;}
+.karyou-rank-seal-title {
+  margin-top:clamp(8px,2.5cqh,17px);
+  font-size:clamp(9px,2cqh,13px);font-weight:950;letter-spacing:.07em;line-height:1.1;
+}
+.karyou-rank-seal-letter {
+  font-size:clamp(35px,11cqh,67px);font-weight:1000;
+  font-style:italic;line-height:.94;
+  color:#fff7d2;text-shadow:1px 2px 0 #a05a15,0 0 11px var(--seal-glow);
+}
+.karyou-rank-seal-laurels {font-size:clamp(9px,2cqh,14px);line-height:1;color:var(--seal-metal);}
+.karyou-rank-seal-S {--seal-metal:#fbbf24;--seal-glow:rgba(251,191,36,.7);}
+.karyou-rank-seal-A {--seal-metal:#f0abfc;--seal-glow:rgba(232,121,249,.65);}
+.karyou-rank-seal-B {--seal-metal:#67e8f9;--seal-glow:rgba(34,211,238,.6);}
+.karyou-rank-seal-C {--seal-metal:#e5e7eb;--seal-glow:rgba(226,232,240,.52);}
+@keyframes karyou-seal-arrival {
+  0% {opacity:0;transform:scale(.42) rotate(-16deg);}
+  65% {opacity:1;transform:scale(1.14) rotate(6deg);}
+  85% {transform:scale(.95) rotate(-2deg);}
+  100% {opacity:1;transform:scale(1) rotate(0);}
+}
+@container (max-width:600px) {
+  .karyou-rank-seal {width:clamp(50px,19cqh,90px);height:clamp(50px,19cqh,90px);top:-6px;right:-5px;}
+  .karyou-rank-seal-crown {font-size:12px;}
+  .karyou-rank-seal-title {font-size:8px;margin-top:10px;}
+  .karyou-rank-seal-letter {font-size:clamp(25px,8cqh,45px);}
+  .karyou-rank-seal-laurels {font-size:7px;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .karyou-rank-seal {animation:none!important;}
+}
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-rank-seal {animation:none;}
