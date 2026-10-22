@@ -12,6 +12,7 @@ import { urlSala } from '@/lib/red.mjs';
 import {
   empezarTurnoAction,
   terminarTurnoAction,
+  confirmarInicioCelebracionAction,
   descartarTurnoRotoAction,
 } from '../../actions';
 import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '../../tipos';
@@ -78,6 +79,7 @@ export default async function PantallaPage({ params }: Props) {
           promociones={promociones}
           resultado={resultado}
           resultadoReciente={resultadoReciente}
+          onInicioCelebracion={confirmarInicioCelebracionAction.bind(null, code)}
         /></div>
       </>
     );
@@ -112,6 +114,7 @@ export default async function PantallaPage({ params }: Props) {
         enlace={enlace}
         onCantar={empezarTurnoAction.bind(null, code, enTurno.id)}
         onTerminar={terminarTurnoAction.bind(null, code, enTurno.id)}
+        onInicioCelebracion={confirmarInicioCelebracionAction.bind(null, code)}
         onDescartar={descartarTurnoRotoAction.bind(null, code, enTurno.id)}
       /></div>
     </>

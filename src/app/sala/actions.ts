@@ -23,7 +23,7 @@ import { cerrarTurnoConPuntuacion, aplaudir, notaAnteriorRevancha } from '@/db/p
 import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
 import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
-import { omitirCelebracion } from '@/domain/celebracion.mjs';
+import { omitirCelebracion, confirmarPresentacionCelebracion } from '@/domain/celebracion.mjs';
 
 /** Nombre de la cookie con la que un invitado se identifica en una sala. */
 function nombreCookie(code: string) {
@@ -347,6 +347,22 @@ export async function descartarTurnoRotoAction(code: string, queueItemId: number
   await cerrarTurno(limpio, queueItemId, 'skipped');
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
+}
+
+/** La TV confirma el inicio visual de la puntuación real una sola vez.
+ * El servidor valida sala, turno puntuado y vigencia antes de ajustar el plazo.
+ */
+export async function confirmarInicioCelebracionAction(code: string, queueItemId: number) {
+  const limpio = normalizarCodigo(code);
+  const sesion = await obtenerSesion(limpio);
+  if (!sesion) return 0;
+  const restante = await confirmarPresentacionCelebracion(sesion.id, queueItemId);
+  if (restante > 0) {
+    revalidatePath(`/sala/${limpio}`);
+    revalidatePath(`/sala/${limpio}/control`);
+    revalidatePath(`/sala/${limpio}/tv`);
+  }
+  return restante;
 }
 
 /** Solo dueño verificado del bar puede omitir la espera de celebración. */

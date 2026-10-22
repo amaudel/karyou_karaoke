@@ -552,7 +552,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
                 {estado.cola.map((fila, indice) => {
                   const mia = fila.participant_id === quien.participante.id;
                   const mostrarPlayEnFila =
-                    !estado.sonando && indice === 0 && (mia || turnoInactivoDesbloqueado);
+                    !celebracionBloqueada && !estado.sonando && indice === 0 && (mia || turnoInactivoDesbloqueado);
                   return (
                     <li
                       key={fila.id}

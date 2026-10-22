@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type {PromocionBar} from './AnuncioBar';
 import ParticulasResultado from './ParticulasResultado';
 import { letraArcade } from '@/domain/scoring/rangos-visuales.mjs';
+import { TIEMPOS_CALIFICACION as TIEMPOS } from '@/domain/tiempos-celebracion.mjs';
 import { tic, revelar, resultado as sonidoResultado } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
 
@@ -39,8 +40,7 @@ const BADGE_TIER: Record<string, string> = {
   under: '🎶 ÁNIMO CANTANTE 🎶',
 };
 
-/** 8.7 segundos de espectáculo; se interrumpe si comienza la siguiente canción. */
-const TIEMPOS = { analisis: 1400, subpuntajes: 1800, total: 2300, mensaje: 3200 };
+/** 8,7 segundos compartidos con el reloj de protección del servidor. */
 
 type Fase = 'analizando' | 'subpuntajes' | 'total' | 'mensaje';
 
@@ -49,18 +49,28 @@ export default function AnimacionResultado({
   ranking,
   aplausos,
   patrocinio = null,
+  onInicio,
   onFin,
 }: {
   resultado: ResultadoVista | null;
   ranking: FilaRankingVista[];
   aplausos: number;
   patrocinio?: PromocionBar | null;
+  onInicio?: () => void | Promise<unknown>;
   onFin: () => void;
 }) {
   const [fase, setFase] = useState<Fase>('analizando');
   const [frase, setFrase] = useState(0);
   const [contador, setContador] = useState(0);
   const [barrasVisibles, setBarrasVisibles] = useState(false);
+
+  const inicioRef = useRef(onInicio);
+  useEffect(() => { inicioRef.current = onInicio; }, [onInicio]);
+  useEffect(() => {
+    // Un montaje real de la nota confirma la presentación; el servidor lo hace idempotente.
+    Promise.resolve().then(() => inicioRef.current?.())
+      .catch((error) => console.warn('[Karyou TV] No se pudo confirmar el comienzo de la nota:', error));
+  }, []);
 
   const alFinRef = useRef(onFin);
   useEffect(() => {
