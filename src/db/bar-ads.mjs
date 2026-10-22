@@ -104,6 +104,29 @@ export async function listarCampanias(venueId) {
     order by created_at desc, id desc`).all(venueId);
 }
 
+export async function editarCampania(venueId,id,input) {
+  const c=validarCampania(input);
+  await asegurarBarAds();
+  const resultado=await (await getDb()).prepare(`update bar_campaigns
+    set title=?,placement=?,layout=?,duration_seconds=?,priority=?,starts_at=?,ends_at=?,updated_at=datetime('now')
+    where venue_id=? and id=? and status!='archived'`).run(
+      c.title,c.placement,c.layout,c.duration_seconds,c.priority,c.starts_at,c.ends_at,
+      Number(venueId),Number(id));
+  return resultado.changes>0;
+}
+
+export async function campaniaDelBar(venueId,id) {
+  await asegurarBarAds();
+  return await (await getDb()).prepare('select id,blob_path from bar_campaigns where venue_id=? and id=?')
+    .get(Number(venueId),Number(id));
+}
+
+export async function eliminarCampania(venueId,id) {
+  await asegurarBarAds();
+  return await (await getDb()).prepare('delete from bar_campaigns where venue_id=? and id=?')
+    .run(Number(venueId),Number(id));
+}
+
 export async function cambiarEstadoCampania(venueId,id,status) {
   if (!['draft','active','paused','archived'].includes(status)) return false;
   await asegurarBarAds();
