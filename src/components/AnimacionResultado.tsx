@@ -160,7 +160,7 @@ export default function AnimacionResultado({
     <section className="karyou-score-screen karyou-score-showcase" aria-label="Resultado de karaoke">
       <div className="karyou-showcase-glow" aria-hidden="true" />
       {fase === "mensaje" && resultado && <ParticulasResultado total={resultado.total} />}
-      {fase === 'mensaje' && resultado?.total >= 90 && (
+      {fase === 'mensaje' && (resultado?.total ?? 0) >= 90 && (
         <div className="karyou-showcase-sparks karyou-particles-photo" aria-hidden="true">
           {Array.from({ length: 12 }, (_, i) => (
             <span key={i} className="animar-confeti" style={{ left: `${(i * 17 + 7) % 95}%`, animationDelay: `${i * 110}ms` }}>
