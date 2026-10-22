@@ -46,7 +46,7 @@ export default function ParticulasResultado({ total }: { total: number }) {
         p.vy += .075 * dt; p.girar += p.velocidad * dt;
         ctx.save();
         ctx.translate(p.x, p.y); ctx.rotate(p.girar);
-        ctx.fillStyle = p.color;
+        ctx.fillStyle = p.color || '#fbbf24';
         ctx.fillRect(-p.medida / 2, -p.medida / 3, p.medida, p.medida * .65);
         ctx.restore();
       }
