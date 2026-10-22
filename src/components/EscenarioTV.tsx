@@ -8,6 +8,7 @@ import PanelTV from './PanelTV';
 import AnimacionResultado from './AnimacionResultado';
 import type {PromocionBar} from './AnuncioBar';
 import { despertar } from '@/lib/sonido.mjs';
+import CuentaRegresivaCelebracion from './CuentaRegresivaCelebracion';
 import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
 /** Segundos tras los cuales la TV salta sola un turno desatendido en Modo Bar si hay cola detrás. */
@@ -55,7 +56,7 @@ export default function EscenarioTV({
   oyentes: number;
   qr: string;
   enlace: string;
-  onCantar?: () => void;
+  onCantar?: () => Promise<{ok:boolean;error?:string}>;
   onTerminar?: (telemetria: Telemetria) => Promise<ResultadoVista | null>;
   onDescartar?: () => void;
 }) {
@@ -169,16 +170,23 @@ export default function EscenarioTV({
     }
   }, []);
 
-  const manejarCantar = useCallback(() => {
-    setMostrando(false);
-    setAudioListo(true);
-    onCantar?.();
-  }, [onCantar]);
+  const manejarCantar = useCallback(async () => {
+    if (estado.celebracionRestanteMs > 0) {
+      return {ok:false, error:'CELEBRACION_EN_CURSO'};
+    }
+    const respuesta = await onCantar?.();
+    if (respuesta?.ok) {
+      setMostrando(false);
+      setAudioListo(true);
+    }
+    return respuesta ?? {ok:false,error:'TURNO_NO_EXISTE'};
+  }, [onCantar, estado.celebracionRestanteMs]);
 
   return (
     <KaraokeStage
       cancion={cancion}
       reproduciendoRemoto={reproduciendoRemoto}
+      celebracionRestanteMs={estado.celebracionRestanteMs}
       onCantar={onCantar ? manejarCantar : undefined}
       onTerminar={onTerminar ? manejarTerminar : undefined}
       onDescartar={onDescartar}
@@ -192,6 +200,8 @@ export default function EscenarioTV({
             patrocinio={promociones.find(p=>p.placement==='resultado') ?? null}
             onFin={() => setMostrando(false)}
           />
+        ) : estado.celebracionRestanteMs > 0 ? (
+          <CuentaRegresivaCelebracion restanteMs={estado.celebracionRestanteMs} grande />
         ) : null
       }
       panel={
