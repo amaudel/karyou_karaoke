@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import ParticulasResultado from './ParticulasResultado';
 import { letraArcade } from '@/domain/scoring/rangos-visuales.mjs';
 import { tic, revelar, resultado as sonidoResultado } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista } from '@/app/sala/tipos';
@@ -158,6 +159,7 @@ export default function AnimacionResultado({
   return (
     <section className="karyou-score-screen karyou-score-showcase" aria-label="Resultado de karaoke">
       <div className="karyou-showcase-glow" aria-hidden="true" />
+      {fase === "mensaje" && resultado && <ParticulasResultado total={resultado.total} />}
       {fase === 'mensaje' && resultado?.total >= 90 && (
         <div className="karyou-showcase-sparks karyou-particles-photo" aria-hidden="true">
           {Array.from({ length: 12 }, (_, i) => (
