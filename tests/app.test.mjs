@@ -1593,3 +1593,44 @@ test('Bar Ads: propietario aislado, campañas reutilizables y horario controlado
   assert.equal(await cambiarEstadoCampania(100000,id,'active'),false);
   assert.throws(()=>validarCampania({title:'Promo',placement:'otro'}));
 });
+
+test('regresión TV Bar: cada actuación puntúa cuando todavía hay canciones en cola',async()=>{
+  const {debeRevelarResultado}=await import('../src/domain/tv/revelacion-resultado.mjs');
+  const {code}=await crearSesion('TV Bar puntuaciones consecutivas','bar');
+  const ana=await unirseSesion(code,'Ana TV',undefined,'Mesa A');
+  const luis=await unirseSesion(code,'Luis TV',undefined,'Mesa B');
+  assert.ok(ana.ok && luis.ok);
+  const p1=await pedirCancion(code,ana.token,'wt-pY4mI2rs');
+  const p2=await pedirCancion(code,luis.token,'U5TiuzOkJEY');
+  assert.equal(p1.ok,true);
+  assert.equal(p2.ok,true);
+
+  await iniciarTurno(code,p1.queueItemId);
+  await envejecerTurno(p1.queueItemId,4);
+  const cerrado1=await cerrarTurnoConPuntuacion(code,p1.queueItemId,{
+    posicionFinal:190, terminoNatural:true,
+  });
+  assert.equal(cerrado1.ok,true);
+  assert.ok(cerrado1.resultado?.id);
+  const espera=await estadoSesion(code);
+  assert.equal(espera.sonando,null);
+  assert.equal(espera.esperando.length,1,'la cola aún tiene al segundo cantante');
+  const s1=await ultimoResultado((await obtenerSesion(code)).id);
+  assert.equal(s1.queue_item_id,p1.queueItemId);
+  assert.ok(debeRevelarResultado({
+    resultado:s1,reciente:true,ultimoMostradoId:null,turnoSonandoId:null,
+  }), 'la TV debe revelar la primera nota antes de la siguiente canción');
+
+  await iniciarTurno(code,p2.queueItemId);
+  await envejecerTurno(p2.queueItemId,4);
+  const cerrado2=await cerrarTurnoConPuntuacion(code,p2.queueItemId,{
+    posicionFinal:190, terminoNatural:true,
+  });
+  assert.equal(cerrado2.ok,true);
+  const s2=await ultimoResultado((await obtenerSesion(code)).id);
+  assert.equal(s2.queue_item_id,p2.queueItemId);
+  assert.ok(s2.id>s1.id);
+  assert.ok(debeRevelarResultado({
+    resultado:s2,reciente:true,ultimoMostradoId:s1.id,turnoSonandoId:null,
+  }), 'la segunda nota también aparece con la cola vacía');
+});
