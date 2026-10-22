@@ -1553,3 +1553,43 @@ test('los niveles de espectáculo persisten por sala y sobreviven cambios Casa/B
   assert.equal((await cambiarEspectaculoSesion(primera.code, 'discreto')).ok, true);
   assert.equal((await obtenerSesion(primera.code)).espectaculo, 'discreto');
 });
+
+test('Bar Ads: propietario aislado, campañas reutilizables y horario controlado',async()=>{
+  const {
+    registrarNuevaSalaBar,propietarioDeSala,barDeSala,crearCampania,
+    cambiarEstadoCampania,promocionesDeSala,listarCampanias,validarCampania
+  }=await import('../src/db/bar-ads.mjs');
+  const barUno=await crearSesion('Pub Noche Azul','bar');
+  const barDos=await crearSesion('Otro establecimiento','bar');
+  const uno=await obtenerSesion(barUno.code);
+  const dos=await obtenerSesion(barDos.code);
+  const token=await registrarNuevaSalaBar(uno.id,'Pub Noche Azul');
+  await registrarNuevaSalaBar(dos.id,'Otro establecimiento');
+  const owner=await propietarioDeSala(uno.id,token);
+  assert.ok(owner);
+  assert.equal((await propietarioDeSala(dos.id,token)),undefined);
+  assert.equal((await propietarioDeSala(uno.id,'mala-clave')),null);
+  const nueva=await crearSesion('Segunda noche del Pub','bar');
+  const segunda=await obtenerSesion(nueva.code);
+  assert.equal(await registrarNuevaSalaBar(segunda.id,'Otra noche',token),token);
+  assert.equal((await barDeSala(segunda.id)).id,owner.id);
+
+  const id=await crearCampania(owner.id,{
+    title:'2x1 Mojitos',placement:'espera',duration_seconds:10,priority:2,
+    starts_at:'2026-10-22T18:00:00.000Z',
+    ends_at:'2026-10-23T05:00:00.000Z'
+  },{url:'https://example.com/promo.webp',pathname:'promo.webp',contentType:'image/webp'});
+  assert.equal((await listarCampanias(owner.id)).length,1);
+  assert.equal((await promocionesDeSala(uno.id,new Date('2026-10-22T20:00:00Z'))).length,0,'borradores nunca se publican');
+  assert.equal(await cambiarEstadoCampania(owner.id,id,'active'),true);
+  assert.equal((await promocionesDeSala(uno.id,new Date('2026-10-22T20:00:00Z'))).length,1);
+  assert.equal((await promocionesDeSala(segunda.id,new Date('2026-10-22T20:00:00Z'))).length,1);
+  assert.equal((await promocionesDeSala(dos.id,new Date('2026-10-22T20:00:00Z'))).length,0);
+  assert.equal((await promocionesDeSala(uno.id,new Date('2026-10-22T17:00:00Z'))).length,0);
+  assert.equal((await promocionesDeSala(uno.id,new Date('2026-10-23T06:00:00Z'))).length,0);
+  assert.equal(await cambiarEstadoCampania(owner.id,id,'paused'),true);
+  assert.equal((await promocionesDeSala(uno.id,new Date('2026-10-22T20:00:00Z'))).length,0);
+  assert.equal(await cambiarEstadoCampania(owner.id,id,'invalid'),false);
+  assert.equal(await cambiarEstadoCampania(100000,id,'active'),false);
+  assert.throws(()=>validarCampania({title:'Promo',placement:'otro'}));
+});
