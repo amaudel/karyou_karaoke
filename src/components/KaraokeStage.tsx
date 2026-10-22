@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { reportarPistaBloqueada } from '@/app/actions';
+import { MarcoYouTube } from './MarcoYouTube.mjs';
 
 /* ------------------------------------------------------------------ tipos YT */
 
@@ -589,11 +590,10 @@ export default function KaraokeStage({
           className="w-full overflow-hidden rounded-2xl border border-purple-500/30 bg-black shadow-2xl"
           style={{ aspectRatio: '16 / 9', minHeight: 220 }}
         >
-          {/* Con reemplazo, el reproductor deja de mostrarse pero SIGUE MONTADO */}
-          <div
-            id={ID_REPRODUCTOR}
-            className={reemplazo ? 'hidden' : 'h-full w-full'}
-          />
+          {/* YouTube REEMPLAZA el nodo #yt-player por un iframe. El marco externo
+              permanece bajo control de React: lo ocultamos cuando hay puntuación,
+              sin superponer anuncios ni resultados sobre el video de YouTube. */}
+          <MarcoYouTube oculto={Boolean(reemplazo)} />
           {reemplazo}
         </div>
 
