@@ -502,3 +502,50 @@ input[type="search"]::-webkit-search-results-decoration {
 @media(prefers-reduced-motion:reduce) {
   .karyou-particles-photo {opacity:.38;}
 }
+
+/* Arcade Reveal de Karyou — conserva el arte original y los valores del servidor. */
+.karyou-arcade-stat { flex:1; min-width:0; }
+.karyou-arcade-bar {
+  width:100%; height:clamp(3px,.9cqh,8px); margin-top:clamp(2px,.7cqh,7px);
+  border-radius:999px; background:rgba(15,5,32,.8); overflow:hidden;
+  border:1px solid rgba(251,191,36,.17);
+}
+.karyou-arcade-bar > span {
+  display:block; height:100%; border-radius:inherit;
+  background:linear-gradient(90deg,#9333ea,#e879f9,#fbbf24);
+  box-shadow:0 0 10px rgba(236,72,153,.5);
+  transition:width .8s cubic-bezier(.16,1,.3,1);
+}
+.karyou-showcase-main-score { isolation:isolate; }
+.karyou-arcade-rank {
+  position:absolute; right:clamp(3px,1cqw,12px);top:clamp(2px,1cqh,10px);
+  z-index:3; display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:clamp(33px,7.5cqh,63px); height:clamp(33px,7.5cqh,63px);
+  border:2px solid currentColor;border-radius:15px;
+  transform:rotate(9deg);background:rgba(15,5,32,.93);
+  box-shadow:0 0 16px currentColor;
+  animation:karyou-rank-stamp .48s cubic-bezier(.2,.8,.2,1) both;
+}
+.karyou-arcade-rank small {font-size:clamp(7px,1.1cqh,10px);font-weight:900;line-height:1;}
+.karyou-arcade-rank b {font-size:clamp(21px,4.7cqh,42px);font-weight:1000;line-height:1;}
+.karyou-arcade-rank-S {color:#fbbf24;}
+.karyou-arcade-rank-A {color:#f0abfc;}
+.karyou-arcade-rank-B {color:#67e8f9;}
+.karyou-arcade-rank-C {color:#cbd5e1;}
+@keyframes karyou-rank-stamp {
+  from { transform:scale(2.1) rotate(-12deg);opacity:0; }
+  65% { transform:scale(.92) rotate(13deg);opacity:1; }
+  to { transform:scale(1) rotate(9deg);opacity:1; }
+}
+/* No esconder información ni animarla cuando el usuario prefiere movimiento reducido. */
+@media (prefers-reduced-motion:reduce) {
+  .karyou-arcade-rank {animation:none!important;}
+  .karyou-arcade-bar > span {transition:none!important;}
+}
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-arcade-rank {animation:none;}
+.karyou-tv-fx[data-espectaculo="discreto"] .karyou-arcade-bar > span {transition:none;}
+@container (max-height:300px) {
+  .karyou-arcade-rank {width:28px;height:28px;border-radius:7px;}
+  .karyou-arcade-rank b {font-size:19px;}
+  .karyou-arcade-rank small {font-size:6px;}
+}
