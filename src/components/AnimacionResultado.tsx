@@ -28,6 +28,14 @@ const COLOR_TIER: Record<string, string> = {
   exceptional: 'from-amber-300 via-yellow-200 to-amber-500 text-amber-300',
 };
 
+/** Distintivos arcade: solo presentación, nunca modifican el motor de puntuación. */
+export function letraArcade(total: number): 'S' | 'A' | 'B' | 'C' {
+  if (total >= 90) return 'S';
+  if (total >= 78) return 'A';
+  if (total >= 65) return 'B';
+  return 'C';
+}
+
 const BADGE_TIER: Record<string, string> = {
   exceptional: '🔥 ÍDOLO DEL KARAOKE 🔥',
   excellent: '🌟 ESTRELLA DE LA NOCHE 🌟',
@@ -55,6 +63,7 @@ export default function AnimacionResultado({
   const [fase, setFase] = useState<Fase>('analizando');
   const [frase, setFrase] = useState(0);
   const [contador, setContador] = useState(0);
+  const [barrasVisibles, setBarrasVisibles] = useState(false);
 
   const alFinRef = useRef(onFin);
   useEffect(() => {
@@ -88,6 +97,13 @@ export default function AnimacionResultado({
     return () => window.clearInterval(id);
   }, [fase]);
 
+  // Animar las métricas una sola vez al entrar al tramo (sin valores inventados).
+  useEffect(() => {
+    if (fase !== 'subpuntajes') return;
+    const id = window.setTimeout(() => setBarrasVisibles(true), 50);
+    return () => window.clearTimeout(id);
+  }, [fase]);
+
   /** El sonido de cada tramo. */
   useEffect(() => {
     if (fase === 'subpuntajes') revelar();
@@ -97,6 +113,18 @@ export default function AnimacionResultado({
     // toda la animación.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fase, resultado?.tier]);
+
+  /** Ticks discretos durante el conteo: la biblioteca de sonidos ya gestiona
+   * el desbloqueo de audio. No añadimos un segundo AudioContext ni CDN. */
+  useEffect(() => {
+    if (fase !== 'total') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let veces = 0;
+    const id = window.setInterval(() => {
+      if (++veces <= 7) tic();
+    }, 175);
+    return () => window.clearInterval(id);
+  }, [fase]);
 
   /** El contador sube hasta el total con desaceleración. */
   useEffect(() => {
@@ -129,6 +157,7 @@ export default function AnimacionResultado({
   const mio = resultado ? ranking.find((r) => r.participant_id === resultado.participant_id) : undefined;
   const revelado = fase !== 'analizando' && resultado !== null;
   const esRevancha = (() => { try { return JSON.parse(resultado?.detail || '{}').perfil === 'revancha'; } catch { return false; } })();
+  const insignia = resultado ? letraArcade(resultado.total) : 'C';
   const diferencia = esRevancha && typeof resultado?.revanchaAnterior === 'number'
     ? resultado.total - resultado.revanchaAnterior : null;
 
@@ -136,7 +165,7 @@ export default function AnimacionResultado({
   return (
     <section className="karyou-score-screen karyou-score-showcase" aria-label="Resultado de karaoke">
       <div className="karyou-showcase-glow" aria-hidden="true" />
-      {revelado && resultado?.total >= 90 && (
+      {fase === 'mensaje' && resultado?.total >= 90 && (
         <div className="karyou-showcase-sparks karyou-particles-photo" aria-hidden="true">
           {Array.from({ length: 12 }, (_, i) => (
             <span key={i} className="animar-confeti" style={{ left: `${(i * 17 + 7) % 95}%`, animationDelay: `${i * 110}ms` }}>
@@ -179,7 +208,7 @@ export default function AnimacionResultado({
               ].map(item => (
                 <div className="karyou-showcase-metric" key={item.nombre}>
                   <span aria-hidden="true">{item.icono}</span>
-                  <div><p>{item.nombre}</p><strong>{item.valor}</strong></div>
+                  <div className="karyou-arcade-stat"><p>{item.nombre}</p><strong>{item.valor}</strong><div className="karyou-arcade-bar" aria-hidden="true"><span style={{ width: barrasVisibles ? `${Math.max(0, Math.min(100, item.valor))}%` : '0%' }} /></div></div>
                 </div>
               ))}
             </div>
@@ -207,6 +236,7 @@ export default function AnimacionResultado({
                 {fase === 'subpuntajes' ? '—' : fase === 'mensaje' ? resultado.total : contador}
               </strong>
               <span>{fase === 'subpuntajes' ? 'PREPARANDO LA NOTA' : (BADGE_TIER[resultado.tier] ?? '¡A SEGUIR CANTANDO!')}</span>
+              {fase === 'mensaje' && <div className={`karyou-arcade-rank karyou-arcade-rank-${insignia}`} aria-label={`Rango visual ${insignia}`}><small>RANGO</small><b>{insignia}</b></div>}
             </div>
           </div>
           <footer className="karyou-showcase-footer karyou-showcase-footer-neon">
