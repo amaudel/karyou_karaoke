@@ -591,6 +591,8 @@ export default function KaraokeStage({
   }, []);
 
   const reiniciar = useCallback(() => {
+    // Una nota ya guardada no puede repetirse en la TV sin un turno nuevo.
+    if (onCantar || celebracionRestanteMs > 0) return;
     const player = playerRef.current;
     if (!player) return;
     reiniciarTelemetria();
@@ -602,7 +604,7 @@ export default function KaraokeStage({
     } catch {
       setEstado('error');
     }
-  }, [reiniciarTelemetria]);
+  }, [reiniciarTelemetria, onCantar, celebracionRestanteMs]);
 
   /* ----------------------------------------------------------------- render */
 
@@ -682,7 +684,7 @@ export default function KaraokeStage({
                   </button>
                 )}
 
-                {estado === 'terminado' && (
+                {estado === 'terminado' && !onCantar && celebracionRestanteMs <= 0 && (
                   <button
                     type="button"
                     onClick={reiniciar}
