@@ -68,3 +68,37 @@ test('composición premium no inicia canciones ni modifica puntaje o base de dat
   assert.match(animacion,/objectFit:'contain'/);
   assert.match(animacion,/callbacks\.current\.onFin\(\)/);
 });
+
+test('modo 100 perfecto solo se activa en 100 exactos: 99 jamás hereda su corona',()=>{
+  const base={id:31,nickname:'DJ de prueba',song_title:'Show',artist:'Demo',
+    rhythm:97,energy:98,interpretation:96,tier:'exceptional'};
+  const noventaYNueve=datosPremium({...base,total:99});
+  const perfecto=datosPremium({...base,total:100});
+  assert.equal(noventaYNueve.total,99);
+  assert.equal(noventaYNueve.esPerfecto,false);
+  assert.equal(noventaYNueve.selloEspecial,null);
+  assert.equal(noventaYNueve.titular,'ÍDOLO DEL KARAOKE');
+  assert.equal(perfecto.total,100);
+  assert.equal(perfecto.esPerfecto,true);
+  assert.equal(perfecto.rango,'S','la lógica de rangos existente no cambia');
+  assert.equal(perfecto.selloEspecial,'100 PERFECTO');
+  assert.equal(perfecto.titular,'LEYENDA DEL KARAOKE');
+  assert.equal(perfecto.remate,'UNA ACTUACIÓN PARA RECORDAR');
+  assert.equal(perfecto.color,'#FFD76A');
+  assert.deepEqual([perfecto.ritmo,perfecto.energia,perfecto.interpretacion],[97,98,96],
+    'el espectáculo nunca falsifica puntuaciones secundarias');
+});
+
+test('100: jingle exclusivo dentro de los mismos 8,7 segundos, sin autoplay',()=>{
+  const c=readFileSync('src/components/AnimacionResultadoPremium.tsx','utf8');
+  const sonido=readFileSync('src/lib/sonido.mjs','utf8');
+  assert.match(c,/fase===3 && resultado.total===100/);
+  assert.match(c,/musicaDeCelebracion\(resultado.tier,true\)/);
+  assert.match(c,/PALETA_PERFECTA/);
+  assert.match(c,/destello/);
+  assert.match(c,/rayo/);
+  assert.match(c,/esPerfecto\?'RANGO S · EXCLUSIVO'/);
+  assert.match(sonido,/const legendaria = \[/);
+  assert.match(sonido,/cuando: 2\.62, duracion: \.23/);
+  assert.doesNotMatch(c,/playVideo\(|loadVideoById\(|empezarTurnoAction/);
+});
