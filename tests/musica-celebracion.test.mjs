@@ -49,3 +49,13 @@ test('la fanfarria se activa exactamente al revelar el número (5,5s), sin modif
   assert.doesNotMatch(source,/iniciarTurno|loadVideoById\(|playVideo\(/);
   assert.match(readFileSync('src/app/demo/ceremonia/DemoClient.tsx','utf8'),/activarAudio\(\)/);
 });
+
+test('Smart TV desbloquea sonido por gesto y la preferencia permite silenciarlo',()=>{
+  const escenario=readFileSync('src/components/EscenarioTV.tsx','utf8');
+  const espera=readFileSync('src/components/PantallaEspera.tsx','utf8');
+  const panel=readFileSync('src/components/PanelTV.tsx','utf8');
+  assert.match(escenario,/const activarTV = useCallback\(\(\) => \{\s*despertar\(\);\s*activarAudio\(\)/);
+  assert.match(espera,/const manejarActivar = useCallback\(\(\) => \{\s*despertar\(\);\s*activarAudio\(\)/);
+  assert.match(panel,/if \(siguiente\) activarAudio\(\)/);
+  assert.match(panel,/silenciar\(!siguiente\)/);
+});
