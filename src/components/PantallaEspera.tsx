@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnimacionResultado from './AnimacionResultado';
 import AnimacionResultadoPremium from './AnimacionResultadoPremium';
-import { despertar } from '@/lib/sonido.mjs';
+import { despertar, activarAudio } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
 /**
@@ -53,6 +53,7 @@ export default function PantallaEspera({
 
   const manejarActivar = useCallback(() => {
     despertar();
+    activarAudio(); // El navegador ya recibió una interacción real.
     setActivoLocal(true);
     try {
       if (!document.fullscreenElement) {
