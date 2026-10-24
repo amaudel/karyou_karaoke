@@ -5,7 +5,7 @@ import AnuncioBar,{type PromocionBar} from './AnuncioBar';
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { despertar, silenciar } from '@/lib/sonido.mjs';
+import { despertar, silenciar, activarAudio } from '@/lib/sonido.mjs';
 import type { FilaVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
 /**
@@ -67,17 +67,17 @@ export default function PanelTV({
   }, []);
 
   const alternarSonido = useCallback(() => {
-    setSonido((anterior) => {
-      const siguiente = !anterior;
-      silenciar(!siguiente);
-      try {
-        window.localStorage.setItem('karaoke-sonido', siguiente ? 'on' : 'off');
-      } catch {
-        // Da igual: la preferencia no sobrevive a la recarga.
-      }
-      return siguiente;
-    });
-  }, []);
+    const siguiente = !sonido;
+    silenciar(!siguiente);
+    // Los Smart TV deben desbloquear audio justo en el toque que lo activa.
+    if (siguiente) activarAudio();
+    try {
+      window.localStorage.setItem('karaoke-sonido', siguiente ? 'on' : 'off');
+    } catch {
+      // La preferencia puede no persistir, el audio sigue siendo utilizable.
+    }
+    setSonido(siguiente);
+  }, [sonido]);
 
   // Lo que está en el reproductor es lo que suena, o la primera de la cola ya
   // preparada. La cola de abajo no repite esa primera.
