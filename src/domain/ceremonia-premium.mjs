@@ -17,7 +17,11 @@ export const BANDAS_PREMIUM=Object.freeze({
   excellent:{texto:'ESTRELLA DE LA NOCHE',color:'#EBC1FF'},
   exceptional:{texto:'ÍDOLO DEL KARAOKE',color:'#FFE0A1'},
 });
-/** Adaptación exclusiva de presentación: nunca calcula ni altera el score. */
+/** Adaptación exclusiva de presentación: nunca calcula ni altera el score.
+ * @param {{id:number; nickname:string; song_title:string; artist?:string|null; mesa?:string|null; total:number; rhythm:number; energy:number; interpretation:number; tier:string}|null} resultado
+ * @param {{placement:string; bar_name?:string; title?:string; image_url?:string}|null} [patrocinio]
+ * @param {boolean} [siguienteEnCola]
+ */
 export function datosPremium(resultado,patrocinio=null,siguienteEnCola=false){
   if(!resultado)return null;
   const banda=BANDAS_PREMIUM[resultado.tier]??BANDAS_PREMIUM.normal;
