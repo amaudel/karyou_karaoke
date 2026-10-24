@@ -27,9 +27,9 @@ const SEGUNDOS_RECIENTE = 45;
 export default async function PantallaPage({ params, searchParams }: Props) {
   const { code: codeSucio } = await params;
   const query = await searchParams;
-  // No alterar nunca la ceremonia de producción hasta aprobar la vista previa.
-  const usarCeremoniaPremium = query?.ceremonia === 'premium' &&
-    (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV === 'development');
+  // La nueva ceremonia es la predeterminada. El modo clásico sigue disponible
+  // para comparar o volver temporalmente sin cambiar código ni despliegues.
+  const usarCeremoniaPremium = query?.ceremonia !== 'clasica';
   const code = normalizarCodigo(codeSucio);
 
   const sesion = await obtenerSesion(code);
