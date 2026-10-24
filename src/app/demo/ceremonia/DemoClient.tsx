@@ -47,7 +47,8 @@ export default function DemoClient(){
       </div>
       <div className="overflow-hidden rounded-xl border border-purple-600/50">
         {enCurso?<AnimacionResultadoPremium key={version} resultado={resultado}
-          patrocinio={anuncio?promocion:null} siguienteEnCola onFin={()=>setEnCurso(false)}/>:
+          patrocinio={anuncio?promocion:null} siguienteEnCola persistirInicio={false}
+          onFin={()=>setEnCurso(false)}/>:
           <div className="flex aspect-video flex-col items-center justify-center gap-4 bg-[#171135]">
             <p className="text-2xl font-black">Ceremonia finalizada · 8,7 s</p>
             <button type="button" onClick={()=>{setVersion(v=>v+1);setEnCurso(true)}}
