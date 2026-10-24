@@ -47,12 +47,12 @@ test('anuncio elegible respeta imagen original completa, otros placements exclui
   assert.equal(datosPremium(resultado,{...ad,placement:'espera'}).patrocinador,null);
 });
 
-test('selector premium limitado a vista previa; los demás usan componente estable',()=>{
+test('premium es predeterminado; ?ceremonia=clasica permite volver al diseño previo',()=>{
   const tv=readFileSync('src/app/sala/[code]/tv/page.tsx','utf8');
   const escenario=readFileSync('src/components/EscenarioTV.tsx','utf8');
   const espera=readFileSync('src/components/PantallaEspera.tsx','utf8');
-  assert.match(tv,/process\.env\.VERCEL_ENV === 'preview'/);
-  assert.match(tv,/query\?\.ceremonia === 'premium'/);
+  assert.match(tv,/query\?\.ceremonia !== 'clasica'/);
+  assert.doesNotMatch(tv,/VERCEL_ENV === 'preview'/);
   assert.match(escenario,/usarCeremoniaPremium \?/);
   assert.match(escenario,/: <AnimacionResultado/);
   assert.match(espera,/usarCeremoniaPremium \? <AnimacionResultadoPremium/);
