@@ -3,7 +3,7 @@
 import {useEffect, useRef, useState} from 'react';
 import type {ResultadoVista} from '@/app/sala/tipos';
 import type {PromocionBar} from './AnuncioBar';
-import {tic, revelar, resultado as sonidoResultado, perfecto as sonidoPerfecto} from '@/lib/sonido.mjs';
+import {tic, revelar, resultado as sonidoResultado, musicaDeCelebracion} from '@/lib/sonido.mjs';
 import {CEREMONIA_PREMIUM_MS,CEREMONIA_PREMIUM_FPS,FASES_PREMIUM,datosPremium} from '@/domain/ceremonia-premium.mjs';
 
 type Props={
@@ -85,7 +85,10 @@ export default function AnimacionResultadoPremium({
     if(fase===0)tic();
     else if(fase===1)revelar();
     else if(fase===2 && resultado.total!==100)sonidoResultado(resultado.tier);
-    else if(fase===3 && resultado.total===100)sonidoPerfecto();
+    // La música entra CUANDO acaba de revelarse el número, en el último
+    // tramo (5,5–8,7s). Dura menos de 3,2s y jamás retrasa el siguiente Play.
+    else if(fase===3 && resultado.total===100)musicaDeCelebracion(resultado.tier,true);
+    else if(fase===3)musicaDeCelebracion(resultado.tier,false);
   },[fase,resultado.tier]);
 
   const r=datosPremium(resultado,patrocinio,siguienteEnCola);
