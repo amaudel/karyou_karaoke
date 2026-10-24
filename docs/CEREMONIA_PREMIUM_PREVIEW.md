@@ -1,4 +1,4 @@
-# KARYOU · Ceremonia premium en vista previa
+# KARYOU · Ceremonia premium como opción predeterminada
 
 ## Punto de retorno verificado
 - Respaldo GitHub: `backup/karyou-estable-antes-remotion-2026-10-23`
@@ -23,17 +23,16 @@ La duración de 8700ms se lee de la fuente única existente:
 **nunca inicia el siguiente turno**.
 
 ## Cómo probar
-- Solo rama preview en Vercel. La versión estable sigue siendo la predeterminada.
-- Demo de diseño (sin base ni sesiones): `/demo/ceremonia`
-- Con sala real en preview: `/sala/CODIGO/tv?ceremonia=premium`
-- Mismo enlace sin `?ceremonia=premium`: celebración estable previa.
-- En Vercel Production el flag de query no habilita el premium. La ruta demo se
-  deshabilita en producción.
+- La nueva ceremonia es predeterminada en `/sala/CODIGO/tv` en todos los entornos.
+- Para ver temporalmente la animación anterior: `/sala/CODIGO/tv?ceremonia=clasica`.
+- La ruta de demostración sintética `/demo/ceremonia` sigue deshabilitada en producción.
+- La variante premium funciona tanto con cola como sin cola, y activa `100 PERFECTO`
+  únicamente con la puntuación real de 100/100.
 - La ceremonia usa `sessionStorage` por ID del resultado para reanudar el tiempo
   tras cambios de árbol cuando llega una canción a una cola inicialmente vacía.
   Una recarga de pantalla no reinicia intencionadamente una nota ya vista.
 
-## Plan de validación manual antes de tocar main
+## Plan de validación manual de la sustitución
 1. Comprobar demo 94/73/100 puntos y sponsor on/off a pantalla completa.
 2. En Modo Casa: finalizar tres turnos con canciones diferentes, confirmar rango,
    nota y tres subpuntajes del servidor.
@@ -52,4 +51,4 @@ función (sin sobrescribir otros cambios independientes); cuando corresponda,
 el deployment `dpl_DVsvTViURZatZ9YFwesN1HTHdzrj` sigue registrado para rollback.
 
 **Precaución:** el respaldo congela código y deployment, no los datos de Turso.
-La vista previa no introduce migraciones ni altera tablas.
+La sustitución no introduce migraciones ni altera tablas.
