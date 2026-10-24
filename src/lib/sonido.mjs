@@ -132,3 +132,25 @@ export function resultado(banda) {
     });
   });
 }
+
+/**
+ * Fanfarria original para el único resultado exactamente igual a 100.
+ * No utiliza recursos externos, no toca el puntaje y respeta el mute global.
+ * Se dispara una vez al empezar la fase final de la celebración.
+ */
+export function perfecto() {
+  const ac = audio();
+  if (!ac) return;
+  const fanfarria = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+  fanfarria.forEach((frecuencia, i) => {
+    tono(ac, {
+      frecuencia,
+      cuando: i < 3 ? i * 0.095 : 0.31 + (i - 3) * 0.09,
+      duracion: i === fanfarria.length - 1 ? 0.92 : 0.36,
+      volumen: i === fanfarria.length - 1 ? 0.069 : 0.047,
+      tipo: i === fanfarria.length - 1 ? 'sine' : 'triangle',
+    });
+  });
+  // Shimmer agudo al coronar: un solo brillo, sin ráfagas estroboscópicas.
+  tono(ac, { frecuencia: 2093, cuando: 0.66, duracion: 0.75, volumen: 0.026, tipo: 'sine' });
+}

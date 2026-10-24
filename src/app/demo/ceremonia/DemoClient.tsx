@@ -5,9 +5,10 @@ import type {ResultadoVista} from '@/app/sala/tipos';
 import type {PromocionBar} from '@/components/AnuncioBar';
 
 const ejemplos:[number,string,string][]=[
-  [94,'excellent','Excelente presentación'],
-  [73,'normal','Buen intento'],
-  [100,'exceptional','Actuación extraordinaria'],
+  [94,'excellent','Rango S · celebración premium'],
+  [73,'normal','Rango B · celebración normal'],
+  [99,'exceptional','99 · sin modo exclusivo'],
+  [100,'exceptional','👑 100 PERFECTO · modo épico'],
 ];
 export default function DemoClient(){
   const [indice,setIndice]=useState(0);
@@ -24,10 +25,11 @@ export default function DemoClient(){
   return <main className="min-h-screen bg-[#070617] p-5 text-white">
     <div className="mx-auto max-w-6xl space-y-4">
       <h1 className="text-2xl font-black">Karyou · Ceremonia premium (solo prueba)</h1>
+      <p className="text-amber-200 font-bold">👑 Nuevo: modo épico EXCLUSIVO para 100/100 · fanfarria, corona, rayos dorados, onda expansiva y confeti reforzado.</p>
       <p className="text-sm text-purple-200">Datos simulados de demostración. No modifica salas, puntuaciones ni producción.</p>
       <div className="flex flex-wrap gap-2">
         {ejemplos.map((ej,i)=><button key={i} type="button" onClick={()=>{setIndice(i);setVersion(v=>v+1);setEnCurso(true)}}
-          className="rounded-lg bg-purple-800 px-3 py-2 text-sm font-bold hover:bg-purple-700">{ej[0]} puntos</button>)}
+          className={'rounded-lg px-3 py-2 text-sm font-bold hover:bg-purple-700 '+(ej[0]===100?'bg-amber-600 text-black':'bg-purple-800')}>{ej[2]}</button>)}
         <button type="button" onClick={()=>{setAnuncio(a=>!a);setVersion(v=>v+1);setEnCurso(true)}}
           className="rounded-lg bg-amber-700 px-3 py-2 text-sm font-bold">Patrocinador: {anuncio?'sí':'no'}</button>
         <button type="button" onClick={()=>{setVersion(v=>v+1);setEnCurso(true)}}

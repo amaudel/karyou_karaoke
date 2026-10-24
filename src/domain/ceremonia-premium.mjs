@@ -27,6 +27,8 @@ export function datosPremium(resultado,patrocinio=null,siguienteEnCola=false){
   const banda=BANDAS_PREMIUM[resultado.tier]??BANDAS_PREMIUM.normal;
   const limitar=n=>Number.isFinite(Number(n))?Math.max(0,Math.min(100,Math.round(Number(n)))):0;
   const total=limitar(resultado.total);
+  // El 100 es un evento exclusivo del juego: no implica medición de afinación.
+  const esPerfecto=total===100;
   return {
     id:resultado.id,
     cantante:String(resultado.nickname??'Cantante'),
@@ -39,8 +41,11 @@ export function datosPremium(resultado,patrocinio=null,siguienteEnCola=false){
     interpretacion:limitar(resultado.interpretation),
     rango:rangoPremium(total),
     banda:resultado.tier,
-    titular:banda.texto,
-    color:banda.color,
+    esPerfecto,
+    selloEspecial:esPerfecto?'100 PERFECTO':null,
+    remate:esPerfecto?'UNA ACTUACIÓN PARA RECORDAR':null,
+    titular:esPerfecto?'LEYENDA DEL KARAOKE':banda.texto,
+    color:esPerfecto?'#FFD76A':banda.color,
     patrocinador:patrocinio?.placement==='resultado'?{
       nombre:String(patrocinio.bar_name??''),
       titulo:String(patrocinio.title??''),
