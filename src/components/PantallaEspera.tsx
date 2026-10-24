@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnimacionResultado from './AnimacionResultado';
+import AnimacionResultadoPremium from './AnimacionResultadoPremium';
 import { despertar } from '@/lib/sonido.mjs';
 import type { ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
@@ -29,6 +30,7 @@ export default function PantallaEspera({
   audioListo = false,
   onActivarTV,
   onInicioCelebracion,
+  usarCeremoniaPremium = false,
 }: {
   code: string;
   modo?: 'casa' | 'bar';
@@ -42,6 +44,7 @@ export default function PantallaEspera({
   audioListo?: boolean;
   onActivarTV?: () => void;
   onInicioCelebracion?: (turnoId: number) => Promise<unknown>;
+  usarCeremoniaPremium?: boolean;
 }) {
   const [mostrando, setMostrando] = useState(() => Boolean(resultado && resultadoReciente));
   const [activoLocal, setActivoLocal] = useState(false);
@@ -78,13 +81,19 @@ export default function PantallaEspera({
           className="w-full overflow-hidden rounded-2xl border border-purple-500/30 bg-black shadow-2xl"
           style={{ aspectRatio: '16 / 9', minHeight: 220 }}
         >
-          <AnimacionResultado
+          {usarCeremoniaPremium ? <AnimacionResultadoPremium
+            key={resultado.id}
+            resultado={resultado}
+            patrocinio={promociones.find(p=>p.placement==='resultado') ?? null}
+            onInicio={() => onInicioCelebracion?.(resultado.queue_item_id)}
+            onFin={() => setMostrando(false)}
+          /> : <AnimacionResultado
             resultado={resultado}
             ranking={ranking}
             aplausos={0}
             onInicio={() => onInicioCelebracion?.(resultado.queue_item_id)}
             onFin={() => setMostrando(false)}
-          />
+          />}
         </div>
       </div>
     );
