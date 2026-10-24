@@ -12,6 +12,8 @@ type Props={
   siguienteEnCola?:boolean;
   onInicio?:()=>void|Promise<unknown>;
   onFin:()=>void;
+  /** Desactivar persistencia únicamente en demos sintéticas; en TV evita reiniciar el resultado al refrescar. */
+  persistirInicio?:boolean;
 };
 const limitar=(n:number)=>Math.max(0,Math.min(1,n));
 const suavizar=(n:number)=>1-Math.pow(1-limitar(n),3);
@@ -23,7 +25,7 @@ const PALETA_PERFECTA=['#FFD76A','#FFFDF7','#1DFBE1','#FFAE58','#FCE5A1'];
  * un MP4 estático ni agregar librerías pesadas. Los datos son los del servidor.
  * Sólo se activa mediante ?ceremonia=premium en la vista de prueba. */
 export default function AnimacionResultadoPremium({
-  resultado,patrocinio=null,siguienteEnCola=false,onInicio,onFin,
+  resultado,patrocinio=null,siguienteEnCola=false,onInicio,onFin,persistirInicio=true,
 }:Props){
   const [elapsed,setElapsed]=useState(0);
   const [width,setWidth]=useState(1920);
@@ -55,11 +57,11 @@ export default function AnimacionResultadoPremium({
     let comienzo=Date.now();
     let nuevo=true;
     try{
-      const anterior=Number(sessionStorage.getItem(key));
+      const anterior=persistirInicio?Number(sessionStorage.getItem(key)):0;
       if(anterior>0&&anterior<=comienzo&&comienzo-anterior<3600000){
         comienzo=anterior;
         nuevo=false;
-      }else sessionStorage.setItem(key,String(comienzo));
+      }else if(persistirInicio) sessionStorage.setItem(key,String(comienzo));
     }catch{/* Navegadores sin acceso a sessionStorage. */}
     // El backend ya confirma una sola vez la apertura del resultado.
     if(nuevo)Promise.resolve().then(()=>callbacks.current.onInicio?.())
@@ -75,7 +77,7 @@ export default function AnimacionResultadoPremium({
     };
     id=requestAnimationFrame(paso);
     return ()=>{terminado=true;cancelAnimationFrame(id)};
-  },[resultado.id]);
+  },[resultado.id,persistirInicio]);
 
   const fase=elapsed>=FASES_PREMIUM.puntuacion?3:elapsed>=FASES_PREMIUM.metricas?2:
     elapsed>=FASES_PREMIUM.intriga?1:0;
