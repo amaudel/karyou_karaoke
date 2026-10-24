@@ -102,3 +102,11 @@ test('100: jingle exclusivo dentro de los mismos 8,7 segundos, sin autoplay',()=
   assert.match(sonido,/cuando: 2\.62, duracion: \.23/);
   assert.doesNotMatch(c,/playVideo\(|loadVideoById\(|empezarTurnoAction/);
 });
+
+test('demo siempre comienza desde cero, la TV real conserva deduplicación por resultado',()=>{
+  const animacion=readFileSync('src/components/AnimacionResultadoPremium.tsx','utf8');
+  const demo=readFileSync('src/app/demo/ceremonia/DemoClient.tsx','utf8');
+  assert.match(animacion,/persistirInicio=true/);
+  assert.match(animacion,/persistirInicio\?Number\(sessionStorage\.getItem\(key\)\):0/);
+  assert.match(demo,/persistirInicio=\{false\}/);
+});
