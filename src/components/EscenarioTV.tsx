@@ -8,7 +8,7 @@ import PanelTV from './PanelTV';
 import AnimacionResultado from './AnimacionResultado';
 import AnimacionResultadoPremium from './AnimacionResultadoPremium';
 import type {PromocionBar} from './AnuncioBar';
-import { despertar } from '@/lib/sonido.mjs';
+import { despertar, activarAudio } from '@/lib/sonido.mjs';
 import CuentaRegresivaCelebracion from './CuentaRegresivaCelebracion';
 import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
@@ -167,6 +167,7 @@ export default function EscenarioTV({
 
   const activarTV = useCallback(() => {
     despertar();
+    activarAudio(); // Desbloquear el sonido en ESTE gesto de la TV.
     setAudioListo(true);
     try {
       if (!document.fullscreenElement) {
