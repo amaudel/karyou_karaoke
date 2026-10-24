@@ -17,11 +17,12 @@ export type PromocionBar = {
  * Nunca aparece dentro ni encima del iframe de YouTube.
  */
 export default function AnuncioBar({
-  promociones, ubicacion, compacto = false,
+  promociones, ubicacion, compacto = false, mini = false,
 }: {
   promociones: PromocionBar[];
   ubicacion: 'espera' | 'entre';
   compacto?: boolean;
+  mini?: boolean;
 }) {
   const elegibles = promociones.filter(p => p.placement === ubicacion);
   const [indice, setIndice] = useState(0);
@@ -35,6 +36,23 @@ export default function AnuncioBar({
   if (!elegibles.length) return null;
   const item = elegibles[indice % elegibles.length];
   if (!item) return null;
+  // Variante horizontal para la pantalla de espera 16:9: la promoción sigue
+  // rotando, pero no empuja la batalla de mesas ni el QR fuera del televisor.
+  if (mini) {
+    return (
+      <aside aria-label="Promoción del establecimiento"
+        className="flex h-[clamp(65px,11vh,95px)] min-h-0 items-center gap-3 rounded-2xl border border-amber-400/30 bg-[#13091f]/80 px-3 py-2 text-white">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={item.image_url} alt={item.title}
+          className="h-full w-[clamp(70px,9vw,122px)] shrink-0 rounded-lg bg-black/40 object-contain" loading="eager" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-wider text-amber-300">✦ Promoción del bar · {item.bar_name}</p>
+          <p className="truncate text-sm font-extrabold">{item.title}</p>
+        </div>
+        {elegibles.length > 1 && <span className="shrink-0 text-xs text-purple-200/70">{indice % elegibles.length + 1}/{elegibles.length}</span>}
+      </aside>
+    );
+  }
   return (
     <aside className={`karyou-bar-ad group relative isolate overflow-hidden rounded-3xl border border-amber-400/40 bg-[#13091f] text-white shadow-xl shadow-fuchsia-950/40 ${compacto ? 'p-3' : 'p-4'}`}
       aria-label="Promoción del establecimiento">
