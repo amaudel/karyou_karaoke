@@ -14,7 +14,7 @@ export default function DemoClient(){
   const [version,setVersion]=useState(1);
   const [anuncio,setAnuncio]=useState(true);
   const [enCurso,setEnCurso]=useState(true);
-  const [nota,banda]=ejemplos[indice];
+  const [nota,banda]=ejemplos[indice] ?? ejemplos[0]!;
   const resultado:ResultadoVista={id:version,participant_id:1,queue_item_id:1,
     nickname:'ALEX',song_title:'La música de tu vida',artist:'Karyou Demo',mesa:'Mesa 4',
     total:nota,rhythm:Math.min(100,nota-2),energy:Math.min(100,nota+1),
