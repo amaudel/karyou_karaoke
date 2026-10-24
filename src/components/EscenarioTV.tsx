@@ -6,8 +6,9 @@ import { debeRevelarResultado, nuevaCancionInterrumpeResultado } from '@/domain/
 import KaraokeStage, { type CancionEnEscenario, type Telemetria } from './KaraokeStage';
 import PanelTV from './PanelTV';
 import AnimacionResultado from './AnimacionResultado';
+import AnimacionResultadoPremium from './AnimacionResultadoPremium';
 import type {PromocionBar} from './AnuncioBar';
-import { despertar } from '@/lib/sonido.mjs';
+import { despertar, activarAudio } from '@/lib/sonido.mjs';
 import CuentaRegresivaCelebracion from './CuentaRegresivaCelebracion';
 import type { EstadoVista, ResultadoVista, FilaRankingVista, FilaMesaVista } from '@/app/sala/tipos';
 
@@ -43,6 +44,7 @@ export default function EscenarioTV({
   onTerminar,
   onInicioCelebracion,
   onDescartar,
+  usarCeremoniaPremium = false,
 }: {
   code: string;
   cancion: CancionEnEscenario;
@@ -61,6 +63,7 @@ export default function EscenarioTV({
   onTerminar?: (telemetria: Telemetria) => Promise<ResultadoVista | null>;
   onInicioCelebracion?: (turnoId: number) => Promise<unknown>;
   onDescartar?: () => void;
+  usarCeremoniaPremium?: boolean;
 }) {
   const router = useRouter();
   const [mostrando, setMostrando] = useState(false);
@@ -142,6 +145,8 @@ export default function EscenarioTV({
   // personas esperando detrás en la cola, la TV pasa automáticamente al siguiente turno.
   useEffect(() => {
     if (estado.modo !== 'bar') return;
+    // La ceremonia, también la premium, no debe descartarse por auto-salto.
+    if (mostrando || estado.celebracionRestanteMs > 0) return;
     if (estado.sonando) return;
     const primero = estado.esperando[0];
     if (!primero || estado.esperando.length < 2) return;
@@ -153,6 +158,8 @@ export default function EscenarioTV({
   }, [
     estado.modo,
     estado.sonando,
+    mostrando,
+    estado.celebracionRestanteMs,
     estado.esperando,
     estado.segundosEnPantalla,
     onDescartar,
@@ -160,6 +167,7 @@ export default function EscenarioTV({
 
   const activarTV = useCallback(() => {
     despertar();
+    activarAudio(); // Desbloquear el sonido en ESTE gesto de la TV.
     setAudioListo(true);
     try {
       if (!document.fullscreenElement) {
@@ -194,7 +202,16 @@ export default function EscenarioTV({
       onDescartar={onDescartar}
       reemplazo={
         mostrando && puntuacionVisible ? (
-          <AnimacionResultado
+          usarCeremoniaPremium ? (
+            <AnimacionResultadoPremium
+              key={puntuacionVisible.id}
+              resultado={puntuacionVisible}
+              patrocinio={promociones.find(p=>p.placement==='resultado') ?? null}
+              siguienteEnCola={estado.esperando.length>0}
+              onInicio={() => onInicioCelebracion?.(puntuacionVisible.queue_item_id)}
+              onFin={() => setMostrando(false)}
+            />
+          ) : <AnimacionResultado
             key={puntuacionVisible.id}
             resultado={puntuacionVisible}
             ranking={ranking}
