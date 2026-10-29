@@ -142,6 +142,7 @@ const ID_REPRODUCTOR = 'yt-player';
 export default function KaraokeStage({
   cancion,
   panel,
+  pie,
   reemplazo,
   onCantar,
   onTerminar,
@@ -152,6 +153,8 @@ export default function KaraokeStage({
   cancion: CancionEnEscenario;
   /** Contenido del panel lateral. Si no se pasa, no se dibuja ninguno. */
   panel?: React.ReactNode;
+  /** Estadísticas de TV fuera del reproductor, debajo de los controles. */
+  pie?: React.ReactNode;
   /**
    * Sustituye al reproductor en su caja mientras está presente.
    *
@@ -612,9 +615,9 @@ export default function KaraokeStage({
   const enMarcha = estado === 'reproduciendo' || estado === 'cargando_pista';
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className={`grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] ${pie ? 'karyou-tv-stage' : ''}`}>
       {/* ------------------------------------------------- columna izquierda */}
-      <div className="space-y-4">
+      <div className="karyou-stage-columna space-y-4">
         {/* Caja del reproductor. NADA se superpone a esta región: ni la barra de
             progreso, ni el estado, ni avisos. Todo eso va debajo, como hermano.
             La comprobación de desarrollo avisa si algo la cruza. */}
@@ -630,7 +633,7 @@ export default function KaraokeStage({
         </div>
 
           {/* Controles y progreso: fuera del reproductor a propósito. */}
-          <div className="space-y-3 rounded-2xl border border-purple-500/25 bg-purple-950/30 p-4 sm:p-5 backdrop-blur-md shadow-xl">
+          <div className="karyou-stage-controles space-y-3 rounded-2xl border border-purple-500/25 bg-purple-950/30 p-4 sm:p-5 backdrop-blur-md shadow-xl">
             <div className="flex items-center gap-3">
               <div
                 className="h-2 flex-1 overflow-hidden rounded-full bg-purple-950/80 border border-purple-700/30"
@@ -774,6 +777,7 @@ export default function KaraokeStage({
               </div>
             )}
           </div>
+          {pie}
         </div>
 
         {/* ---------------------------------------------------- panel lateral */}
@@ -782,7 +786,7 @@ export default function KaraokeStage({
           pase decide su contenido —la ficha de la canción, o la cola en la pantalla de
           TV— pero no puede meterlo dentro de la caja del reproductor.
         */}
-        {panel && <aside className="space-y-4">{panel}</aside>}
+        {panel && <aside className="karyou-stage-panel space-y-4">{panel}</aside>}
       </div>
   );
 }

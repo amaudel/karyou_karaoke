@@ -633,3 +633,51 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-ad-reveal {animation:none!important;}
 }
 .karyou-tv-fx[data-espectaculo="discreto"] .karyou-ad-reveal {animation:none;}
+
+/* TV activa: mismo ancho y proporción de YouTube, sin superposiciones.
+   En pantallas bajas los rankings alternan en el lateral; en las altas van al pie. */
+.karyou-tv-estadisticas-pie { display:none; }
+.karyou-tv-estadisticas-lateral { display:block; }
+@media (min-width:1024px) {
+  main:has(.karyou-tv-stage) { padding-top:12px; padding-bottom:12px; }
+  .karyou-tv-stage { align-items:start; }
+  .karyou-tv-stage .karyou-stage-columna,
+  .karyou-tv-stage .karyou-stage-panel { display:flex; flex-direction:column; gap:8px; }
+  .karyou-tv-stage .karyou-stage-columna > *,
+  .karyou-tv-stage .karyou-stage-panel > * { margin-block:0; }
+  .karyou-tv-stage .karyou-stage-controles { display:flex; flex-direction:column; gap:4px; padding:8px 12px; }
+  .karyou-tv-stage .karyou-stage-controles > * { margin-block:0; }
+  .karyou-tv-stage .karyou-stage-controles button { padding:6px 12px; font-size:12px; }
+  .karyou-tv-stage .karyou-stage-controles p { font-size:11px; }
+  .karyou-tv-ahora { padding:6px 12px; }
+  .karyou-tv-ahora p.text-2xl { font-size:20px; line-height:24px; }
+  .karyou-tv-ahora > div.mt-1\.5 { margin-top:2px; }
+  .karyou-tv-ahora > p { font-size:12px; line-height:16px; }
+  .karyou-tv-ahora > div.mt-3 { margin-top:3px; padding:2px 6px; }
+  .karyou-tv-ahora > div.mt-3 p:first-child { font-size:12px; line-height:16px; }
+  .karyou-tv-ahora > div.mt-3 p:not(:first-child) { display:none; }
+  .karyou-tv-cola { padding:8px 12px; }
+  .karyou-tv-cola ol { margin-top:6px; }
+  .karyou-tv-cola li { padding:3px 8px; }
+  .karyou-tv-cola li > div > div { line-height:14px; }
+  .karyou-tv-qr { display:grid; grid-template-columns:1fr 116px; align-items:center;
+    column-gap:10px; padding:8px 12px; min-height:132px; }
+  .karyou-tv-qr > span { grid-column:1; grid-row:1; margin:0; font-size:9px; padding:2px 4px; }
+  .karyou-tv-qr > div { grid-column:2; grid-row:1 / span 3; margin:0; padding:4px; }
+  .karyou-tv-qr img { width:104px; height:104px; }
+  .karyou-tv-qr > p { grid-column:1; grid-row:2; margin:0; font-size:19px; }
+  .karyou-tv-enlace { grid-column:1; grid-row:3; margin:0; }
+  .karyou-tv-acciones { display:flex; flex-wrap:nowrap; gap:4px; }
+  .karyou-tv-acciones > * { padding:5px 6px; font-size:10px; text-align:center; }
+  .karyou-tv-anfitrion-texto { display:none; }
+  .karyou-tv-estadistica { min-height:110px; padding:8px 12px; }
+}
+@media (min-width:1024px) and (min-height:740px) {
+  .karyou-tv-estadisticas-pie { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .karyou-tv-estadisticas-lateral { display:none; }
+}
+/* En móvil se conservan ambos rankings en el flujo natural. */
+@media (max-width:1023px) {
+  .karyou-tv-estadisticas-pie { display:grid; gap:12px; }
+  .karyou-tv-estadisticas-lateral { display:none; }
+}

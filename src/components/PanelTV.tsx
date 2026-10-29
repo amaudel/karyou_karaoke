@@ -1,6 +1,6 @@
 'use client';
 
-import RankingMesas from './RankingMesas';
+import EstadisticasTV from './EstadisticasTV';
 import AnuncioBar,{type PromocionBar} from './AnuncioBar';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -48,6 +48,9 @@ export default function PanelTV({
   onActivarTV?: () => void;
 }) {
   const [sonido, setSonido] = useState(true);
+  const [paginaCola,setPaginaCola]=useState(0);
+  useEffect(()=>{const timer=window.setInterval(()=>setPaginaCola(p=>p+1),10000);
+    return ()=>window.clearInterval(timer);},[]);
 
   useEffect(() => {
     // Los navegadores no dejan sonar nada antes de que el usuario interactúe. Se
@@ -83,14 +86,12 @@ export default function PanelTV({
   // preparada. La cola de abajo no repite esa primera.
   const enPantalla = sonando ?? esperando[0] ?? null;
   const enCola = sonando ? esperando : esperando.slice(1);
+  const indiceCola = paginaCola % Math.max(1,enCola.length);
 
   return (
     <>
-      {modo === 'bar' && !sonando && promociones.some(p=>p.placement==='entre') && (
-        <AnuncioBar promociones={promociones} ubicacion="entre" compacto />
-      )}
       {/* ------------------------------------------------ quién canta ahora */}
-      <div className="rounded-2xl border border-pink-500/35 bg-gradient-to-br from-purple-900/45 via-purple-950/50 to-pink-950/30 p-4 shadow-xl backdrop-blur-md">
+      <div className="karyou-tv-ahora rounded-2xl border border-pink-500/35 bg-gradient-to-br from-purple-900/45 via-purple-950/50 to-pink-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-extrabold tracking-widest text-pink-300 uppercase">
             {sonando ? '🎤 Cantando ahora' : enPantalla ? '⏭ Turno preparado' : 'Nadie cantando'}
@@ -148,7 +149,7 @@ export default function PanelTV({
       </div>
 
       {/* ----------------------------------------------------------- la cola */}
-      <div className="rounded-2xl border border-purple-500/25 bg-purple-950/30 p-4 shadow-xl backdrop-blur-md">
+      <div className="karyou-tv-cola rounded-2xl border border-purple-500/25 bg-purple-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-xs font-extrabold tracking-widest text-purple-300 uppercase">
             La cola
@@ -162,13 +163,13 @@ export default function PanelTV({
           <p className="mt-2.5 text-xs text-purple-300/70">No hay más canciones en espera.</p>
         ) : (
           <ol className="mt-2.5 space-y-1.5">
-            {enCola.slice(0, 5).map((fila, indice) => (
+            {enCola.slice(indiceCola, indiceCola+1).map((fila, indice) => (
               <li
                 key={fila.id}
                 className="flex items-center gap-2 rounded-xl border border-purple-500/15 bg-purple-950/40 px-2.5 py-1.5 text-sm"
               >
                 <span className="w-5 shrink-0 text-center text-xs font-black tabular-nums text-amber-300">
-                  {indice + 1}
+                  {indiceCola + indice + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-bold text-white">{fila.song_title}</div>
@@ -185,42 +186,12 @@ export default function PanelTV({
         )}
       </div>
 
-      {modo === 'bar' && <RankingMesas mesas={rankingMesas} compacto />}
-
-      {/* ---------------------------------------------------------- ranking */}
-      {ranking.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/25 bg-purple-950/30 p-4 shadow-xl backdrop-blur-md">
-          <h2 className="text-xs font-extrabold tracking-widest text-amber-300 uppercase">
-            🏆 Ranking de la noche
-          </h2>
-          <ol className="mt-2.5 space-y-1.5">
-            {ranking.slice(0, 5).map((f) => {
-              const medalla =
-                f.posicion === 1
-                  ? '🥇'
-                  : f.posicion === 2
-                    ? '🥈'
-                    : f.posicion === 3
-                      ? '🥉'
-                      : `${f.posicion}.`;
-              return (
-                <li key={f.participant_id} className="flex items-center gap-2.5 text-xs">
-                  <span className="w-5 shrink-0 text-center font-black tabular-nums text-amber-300">
-                    {medalla}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-bold text-white">{f.nickname}</span>
-                  <span className="shrink-0 rounded-full border border-purple-500/30 bg-purple-900/60 px-2 py-0.5 font-black tabular-nums text-amber-300">
-                    {f.mejor}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      )}
+      {modo === 'bar' && !sonando && promociones.some(p=>p.placement==='entre') && paginaCola%2===1
+        ? <div className="karyou-tv-promo"><AnuncioBar promociones={promociones} ubicacion="entre" mini /></div>
+        : <EstadisticasTV mesas={rankingMesas} ranking={ranking} modo={modo} lateral />}
 
       {/* ------------------------------------------------------------ entrar */}
-      <div className="rounded-2xl border border-purple-500/30 bg-purple-950/35 p-4 text-center shadow-xl backdrop-blur-md">
+      <div className="karyou-tv-qr rounded-2xl border border-purple-500/30 bg-purple-950/35 p-4 text-center shadow-xl backdrop-blur-md">
         <span className="inline-block rounded-full border border-purple-400/30 bg-purple-500/20 px-3 py-0.5 text-[10px] font-extrabold tracking-widest text-purple-300 uppercase mb-1.5">
           ÚNETE CON TU CELULAR
         </span>
@@ -237,10 +208,10 @@ export default function PanelTV({
         <p className="mt-1.5 font-mono text-xl font-black tracking-[0.3em] text-amber-300 drop-shadow">
           {code}
         </p>
-        <p className="mt-0.5 text-[11px] text-purple-300/60 break-all">{enlace}</p>
+        <a href={enlace} className="karyou-tv-enlace mt-0.5 block text-[11px] text-purple-300/60">Entrar a la sala ↗</a>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-xs">
+      <div className="karyou-tv-acciones flex flex-wrap gap-2 text-xs">
         <Link
           href={`/sala/${code}`}
           target="_blank"
@@ -265,9 +236,9 @@ export default function PanelTV({
             ⛶ Pantalla completa
           </button>
         )}
-        <Link href={`/sala/${code}/control`} target="_blank" rel="noopener noreferrer"
+        <Link href={`/sala/${code}/control`} target="_blank" rel="noopener noreferrer" aria-label="Panel del anfitrión" title="Panel del anfitrión"
           className="rounded-xl border border-purple-500/30 bg-purple-950/40 px-3 py-2 font-bold text-purple-200 hover:text-white hover:bg-purple-900/60">
-          ⚙ Panel del anfitrión ↗
+          <span aria-hidden="true">⚙</span><span className="karyou-tv-anfitrion-texto"> Panel del anfitrión ↗</span>
         </Link>
       </div>
     </>

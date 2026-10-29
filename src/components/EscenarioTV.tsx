@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { debeRevelarResultado, nuevaCancionInterrumpeResultado } from '@/domain/tv/revelacion-resultado.mjs';
 import KaraokeStage, { type CancionEnEscenario, type Telemetria } from './KaraokeStage';
 import PanelTV from './PanelTV';
+import EstadisticasTV from './EstadisticasTV';
 import AnimacionResultado from './AnimacionResultado';
 import AnimacionResultadoPremium from './AnimacionResultadoPremium';
 import type {PromocionBar} from './AnuncioBar';
@@ -224,6 +225,7 @@ export default function EscenarioTV({
           <CuentaRegresivaCelebracion restanteMs={estado.celebracionRestanteMs} grande />
         ) : null
       }
+      pie={<EstadisticasTV mesas={rankingMesas} ranking={ranking} modo={estado.modo} />}
       panel={
         <PanelTV
           code={code}
