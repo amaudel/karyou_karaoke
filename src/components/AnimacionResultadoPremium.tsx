@@ -184,11 +184,12 @@ export default function AnimacionResultadoPremium({
             height:19+(Math.sin(elapsed/150+i*.95)+1)*44+(Math.sin(elapsed/240+i*.7)+1)*12,
             background:'linear-gradient(#72FEED,'+(i%3===0?'#AF72FB':'#107DAF')+')',boxShadow:'0 0 12px #13D4CD55'}}/>)}
           {r.patrocinador?.imagen&&revelacion>0&&<div style={{position:'absolute',inset:0,background:'#090B20',
-            display:'grid',placeItems:'center',opacity:revelacion}}>
+            overflow:'hidden',opacity:revelacion}}>
             {/* La creatividad terminada del bar se conserva completa. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={r.patrocinador.imagen} alt={'Promoción de '+r.patrocinador.nombre}
-              style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+              style={{position:'absolute',inset:0,display:'block',width:'100%',height:'100%',
+                maxWidth:'100%',maxHeight:'100%',objectFit:'contain',objectPosition:'center'}}/>
           </div>}
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:20}}>
