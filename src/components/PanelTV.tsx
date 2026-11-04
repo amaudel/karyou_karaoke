@@ -93,8 +93,9 @@ export default function PanelTV({
       {/* ------------------------------------------------ quién canta ahora */}
       <div className="karyou-tv-ahora rounded-2xl border border-pink-500/35 bg-gradient-to-br from-purple-900/45 via-purple-950/50 to-pink-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-extrabold tracking-widest text-pink-300 uppercase">
-            {sonando ? '🎤 Cantando ahora' : enPantalla ? '⏭ Turno preparado' : 'Nadie cantando'}
+          <p className="karyou-tv-status text-xs font-extrabold tracking-widest text-pink-300 uppercase">
+            <span aria-hidden="true" className={sonando ? 'karyou-tv-status-dot activo' : 'karyou-tv-status-dot'} />
+            {sonando ? 'Cantando ahora' : enPantalla ? 'Turno preparado' : 'Nadie cantando'}
           </p>
           <div className="flex items-center gap-1.5">
             <span
@@ -152,7 +153,7 @@ export default function PanelTV({
       <div className="karyou-tv-cola rounded-2xl border border-purple-500/25 bg-purple-950/30 p-4 shadow-xl backdrop-blur-md">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-xs font-extrabold tracking-widest text-purple-300 uppercase">
-            La cola
+            Próximos turnos
           </h2>
           <span className="rounded-full bg-purple-900/60 px-2.5 py-0.5 text-[11px] font-bold text-purple-200 border border-purple-700/40">
             {enCola.length} esperando
@@ -193,7 +194,7 @@ export default function PanelTV({
       {/* ------------------------------------------------------------ entrar */}
       <div className="karyou-tv-qr rounded-2xl border border-purple-500/30 bg-purple-950/35 p-4 text-center shadow-xl backdrop-blur-md">
         <span className="inline-block rounded-full border border-purple-400/30 bg-purple-500/20 px-3 py-0.5 text-[10px] font-extrabold tracking-widest text-purple-300 uppercase mb-1.5">
-          ÚNETE CON TU CELULAR
+          ESCANEA Y PARTICIPA
         </span>
         <div className="mt-1 inline-block rounded-2xl border-2 border-purple-300/30 bg-white p-2 shadow-md">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -208,7 +209,7 @@ export default function PanelTV({
         <p className="mt-1.5 font-mono text-xl font-black tracking-[0.3em] text-amber-300 drop-shadow">
           {code}
         </p>
-        <a href={enlace} className="karyou-tv-enlace mt-0.5 block text-[11px] text-purple-300/60">Entrar a la sala ↗</a>
+        <a href={enlace} className="karyou-tv-enlace mt-0.5 block text-[11px] text-purple-200/80">Entrar a la sala ↗</a>
       </div>
 
       <div className="karyou-tv-acciones flex flex-wrap gap-2 text-xs">

@@ -681,3 +681,33 @@ input[type="search"]::-webkit-search-results-decoration {
   .karyou-tv-estadisticas-pie { display:grid; gap:12px; }
   .karyou-tv-estadisticas-lateral { display:none; }
 }
+
+/* Acabado visual de la pantalla activa: lectura clara a distancia. */
+.karyou-tv-stage .karyou-tv-ahora,
+.karyou-tv-stage .karyou-tv-cola,
+.karyou-tv-stage .karyou-tv-estadistica,
+.karyou-tv-stage .karyou-tv-qr,
+.karyou-tv-stage .karyou-stage-controles {
+  box-shadow: 0 8px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.karyou-tv-stage .karyou-tv-ahora {
+  border-color: rgba(240,100,198,.45);
+  background: linear-gradient(115deg,rgba(62,20,76,.92),rgba(31,13,52,.95));
+}
+.karyou-tv-status { display:flex; align-items:center; gap:7px; }
+.karyou-tv-status-dot { width:7px; height:7px; border-radius:50%; background:#a6a4c2; flex:none; }
+.karyou-tv-status-dot.activo { background:#53f4c8; box-shadow:0 0 10px rgba(83,244,200,.75); }
+.karyou-tv-stage .karyou-tv-cola,
+.karyou-tv-stage .karyou-tv-estadistica,
+.karyou-tv-stage .karyou-tv-qr,
+.karyou-tv-stage .karyou-stage-controles {
+  background: linear-gradient(130deg,rgba(40,19,65,.94),rgba(21,10,38,.97));
+  border-color:rgba(169,114,224,.28);
+}
+.karyou-tv-stage .karyou-tv-estadistica { border-color:rgba(240,184,77,.32); }
+.karyou-tv-rank-row { min-width:0; }
+.karyou-tv-posicion { display:inline-grid; place-items:center; width:22px; flex:none; color:#ffdf8b; font-weight:900; }
+.karyou-tv-stage .karyou-tv-rank-row strong { font-variant-numeric:tabular-nums; color:#ffe1a0; }
+.karyou-tv-stage .karyou-tv-cola li { border-color:rgba(208,162,255,.2); background:rgba(91,39,120,.22); }
+.karyou-tv-stage .karyou-tv-acciones > * { transition:background-color .2s, border-color .2s; }
+.karyou-tv-stage .karyou-tv-acciones > *:focus-visible { outline:2px solid #8ef8e0; outline-offset:2px; }

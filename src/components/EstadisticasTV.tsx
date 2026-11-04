@@ -25,12 +25,12 @@ export default function EstadisticasTV({mesas, ranking, modo, lateral=false}:{
       {esMesa&&<p className="mt-1 text-[10px] text-purple-200/75">Promedio · mínimo 3 actuaciones para el podio</p>}
       {!lista.length?<p className="mt-2 text-xs text-purple-200/70">{esMesa?'Las mesas aparecerán al participar.':'Aún no hay puntuaciones.'}</p>:
       <ol className="mt-2 space-y-1">
-        {esMesa?mesas.slice(actual*3,actual*3+3).map(f=><li key={f.mesa} className="flex items-center gap-2 text-xs">
-          <span className="w-5 text-amber-300">{f.elegible?`#${f.posicion}`:'⏳'}</span>
+        {esMesa?mesas.slice(actual*3,actual*3+3).map(f=><li key={f.mesa} className="karyou-tv-rank-row flex items-center gap-2 text-xs">
+          <span className="karyou-tv-posicion">{f.elegible?(f.posicion<=3?['🥇','🥈','🥉'][f.posicion-1]:`#${f.posicion}`):'⏳'}</span>
           <span className="min-w-0 flex-1 truncate font-bold">{f.mesa}<span className="ml-1 text-[10px] font-normal text-purple-200/70">{f.canciones} act.{!f.elegible?' · provisional':''}</span></span>
           <strong className="text-amber-300">{f.media} pts</strong>
-        </li>):ranking.slice(actual*3,actual*3+3).map(f=><li key={f.participant_id} className="flex items-center gap-2 text-xs">
-          <span className="w-5 text-amber-300">#{f.posicion}</span><span className="min-w-0 flex-1 truncate font-bold">{f.nickname}</span><strong className="text-amber-300">{f.mejor}</strong>
+        </li>):ranking.slice(actual*3,actual*3+3).map(f=><li key={f.participant_id} className="karyou-tv-rank-row flex items-center gap-2 text-xs">
+          <span className="karyou-tv-posicion">{f.posicion<=3?['🥇','🥈','🥉'][f.posicion-1]:`#${f.posicion}`}</span><span className="min-w-0 flex-1 truncate font-bold">{f.nickname}</span><strong className="text-amber-300">{f.mejor}</strong>
         </li>)}
       </ol>}
     </section>;
