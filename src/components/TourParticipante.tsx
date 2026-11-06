@@ -24,12 +24,12 @@ export default function TourParticipante() {
   useEffect(() => {
     if (paso === null) return;
     const actualizar = () => {
-      const el = document.querySelector(PASOS[paso].selector);
+      const el = document.querySelector(PASOS[paso]!.selector);
       if (!el) { setRect(null); return; }
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
     };
-    document.querySelector(PASOS[paso].selector)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    document.querySelector(PASOS[paso]!.selector)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     actualizar();
     window.addEventListener('scroll', actualizar, true);
     window.addEventListener('resize', actualizar);
@@ -55,8 +55,8 @@ export default function TourParticipante() {
           <div className="mt-5 flex flex-wrap gap-3"><button type="button" onClick={() => { setBienvenida(false); setPaso(0); }} className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-sm font-bold">Muéstrame cómo</button><button type="button" onClick={terminar} className="rounded-xl px-4 py-3 text-sm font-bold text-purple-200">Ya sé usarlo</button></div>
         </> : paso !== null && <>
           <p className="text-xs font-bold uppercase tracking-widest text-pink-300">Paso {paso + 1} de {PASOS.length}</p>
-          <h2 className="mt-2 text-xl font-black">{PASOS[paso].titulo}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-purple-100">{PASOS[paso].texto}</p>
+          <h2 className="mt-2 text-xl font-black">{PASOS[paso]!.titulo}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-purple-100">{PASOS[paso]!.texto}</p>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-2"><button type="button" onClick={terminar} className="px-2 py-3 text-sm font-bold text-purple-200">Omitir</button><div className="flex gap-2">{paso > 0 && <button type="button" onClick={() => setPaso(paso - 1)} className="rounded-xl border border-purple-400/40 px-4 py-3 text-sm font-bold">Anterior</button>}<button type="button" onClick={() => paso === PASOS.length - 1 ? terminar() : setPaso(paso + 1)} className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-sm font-bold">{paso === PASOS.length - 1 ? '¡Entendido!' : 'Siguiente'}</button></div></div>
         </>}
       </div>
