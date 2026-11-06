@@ -187,6 +187,9 @@ export default async function SalaPage({ params, searchParams }: Props) {
     (f) => f.participant_id === quien.participante.id,
   ).length;
 
+  const siguienteTurno = estado.esperando[0] ?? null;
+  const siguienteEsMio = siguienteTurno?.participant_id === quien.participante.id;
+
   const aplausos = estado.sonando ? await contarAplausos(estado.sonando.id) : 0;
   const yaAplaudi =
     estado.sonando && (await yaAplaudio(estado.sonando.id, quien.participante.id));
@@ -250,6 +253,108 @@ export default async function SalaPage({ params, searchParams }: Props) {
             {aviso}
           </p>
         )}
+
+
+        {/* ---------------------------------------- cola visible para participantes */}
+        <section
+          aria-label="Canciones pendientes"
+          data-karyou-cola-participantes="pendientes"
+          className="space-y-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-black tracking-wider text-white uppercase">
+              🎶 Próximas canciones
+            </h2>
+            <span className="rounded-full border border-purple-500/30 bg-purple-950/50 px-3 py-1 text-xs font-bold text-purple-200">
+              {estado.esperando.length} pendientes · {misPendientes} de {limiteSala} tuyas
+            </span>
+          </div>
+
+          {siguienteTurno ? (
+            <div className="overflow-hidden rounded-2xl border border-amber-400/40 bg-purple-950/40 shadow-lg">
+              <div className="flex items-start gap-3 border-b border-amber-400/20 bg-gradient-to-r from-amber-500/15 to-purple-900/30 p-3.5 sm:p-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-sm font-black text-purple-950">
+                  1
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="inline-flex rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-amber-200 uppercase">
+                    ⏭ Siguiente en cantar
+                  </span>
+                  <p className="mt-1.5 break-words text-base font-black leading-snug text-white sm:text-lg">
+                    {siguienteTurno.song_title || siguienteTurno.video_title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-purple-200/75">{siguienteTurno.artist}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-bold text-pink-200">
+                      🎤 {siguienteEsMio ? 'Tú' : siguienteTurno.nickname}
+                    </span>
+                    {siguienteTurno.mesa && (
+                      <span className="rounded-md border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 font-extrabold text-amber-200">
+                        🪑 {siguienteTurno.mesa}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col gap-2">
+                  {!celebracionBloqueada && !estado.sonando &&
+                    (siguienteEsMio || turnoInactivoDesbloqueado) && (
+                    <form action={iniciarTurnoMovilAction}>
+                      <input type="hidden" name="code" value={code} />
+                      <input type="hidden" name="queueItemId" value={siguienteTurno.id} />
+                      <BotonDarPlayTV texto="▶ Play" />
+                    </form>
+                  )}
+                  {siguienteEsMio && (
+                    <form action={cancelarAction}>
+                      <input type="hidden" name="code" value={code} />
+                      <input type="hidden" name="queueItemId" value={siguienteTurno.id} />
+                      <BotonCancelar />
+                    </form>
+                  )}
+                </div>
+              </div>
+              {estado.esperando.length > 1 && (
+                <ol start={2} className="max-h-52 divide-y divide-purple-800/40 overflow-y-auto overscroll-contain">
+                  {estado.esperando.slice(1).map((fila, indice) => {
+                    const mia = fila.participant_id === quien.participante.id;
+                    return (
+                      <li key={fila.id} className={mia ? 'flex items-center gap-3 bg-purple-900/30 p-3' : 'flex items-center gap-3 p-3'}>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-purple-900/70 text-xs font-black tabular-nums text-purple-200">
+                          {indice + 2}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 break-words text-sm font-extrabold leading-snug text-white">
+                            {fila.song_title || fila.video_title}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-purple-200/75">{fila.artist}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                            <strong className={mia ? 'text-pink-300' : 'text-purple-200'}>
+                              🎤 {mia ? 'Tú' : fila.nickname}
+                            </strong>
+                            {fila.mesa && (
+                              <span className="font-semibold text-amber-300">· 🪑 {fila.mesa}</span>
+                            )}
+                          </div>
+                        </div>
+                        {mia && (
+                          <form action={cancelarAction} className="shrink-0">
+                            <input type="hidden" name="code" value={code} />
+                            <input type="hidden" name="queueItemId" value={fila.id} />
+                            <BotonCancelar />
+                          </form>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
+          ) : (
+            <p className="rounded-2xl border border-purple-500/25 bg-purple-950/30 p-3.5 text-sm text-purple-200/80">
+              Todavía no hay canciones pendientes. Busca una canción más abajo para sumarte.
+            </p>
+          )}
+        </section>
 
         {/* ---------------------------------------------------- sonando ahora */}
         {estado.sonando ? (
@@ -402,7 +507,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
         {/* -------------------------------------------------------- buscar */}
         <FormularioBuscar consultaInicial={consulta} />
 
-        {consulta ? (
+        {consulta && (
           <section className="space-y-3">
             <p className="text-xs font-bold tracking-wider text-purple-300/80 uppercase">
               {viendoFavoritos
@@ -530,88 +635,6 @@ export default async function SalaPage({ params, searchParams }: Props) {
                   </div>
                 </form>
               </details>
-            )}
-          </section>
-        ) : (
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-black tracking-wider text-white uppercase">
-                La cola de turnos {esModoBar && <span className="text-xs font-semibold text-amber-300/80 normal-case">· Hasta 2 canciones por mesa en cada ronda</span>}
-              </h2>
-              <span className="rounded-full border border-purple-500/30 bg-purple-950/50 px-3 py-0.5 text-xs font-bold text-purple-300">
-                {misPendientes} de {limiteSala} tuyas
-              </span>
-            </div>
-
-            {estado.cola.length === 0 ? (
-              <p className="rounded-2xl border border-purple-500/20 bg-purple-950/25 p-4 text-sm text-purple-300/75">
-                La cola está vacía. Busca arriba o elige un género y pide la primera.
-              </p>
-            ) : (
-              <ol className="divide-y divide-purple-800/30 overflow-hidden rounded-2xl border border-purple-500/25 bg-purple-950/30 backdrop-blur-md shadow-xl">
-                {estado.cola.map((fila, indice) => {
-                  const mia = fila.participant_id === quien.participante.id;
-                  const mostrarPlayEnFila =
-                    !celebracionBloqueada && !estado.sonando && indice === 0 && (mia || turnoInactivoDesbloqueado);
-                  return (
-                    <li
-                      key={fila.id}
-                      className={`flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 ${
-                        mia ? 'bg-purple-900/35' : ''
-                      }`}
-                    >
-                      <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black tabular-nums ${
-                          fila.status === 'singing'
-                            ? 'bg-pink-500 text-white shadow-sm shadow-pink-500/40'
-                            : mia
-                              ? 'bg-purple-600/50 text-purple-100'
-                              : 'bg-purple-950/70 text-purple-300/70'
-                        }`}
-                      >
-                        {fila.status === 'singing' ? '♪' : indice + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="line-clamp-2 text-sm font-extrabold leading-snug text-white break-words">
-                          {fila.song_title || fila.video_title}
-                        </div>
-                        <div className="mt-0.5 line-clamp-1 text-xs text-purple-200/75">
-                          <strong className={mia ? 'text-pink-300' : 'text-purple-200'}>
-                            {mia ? 'Tú' : fila.nickname}
-                          </strong>
-                          {fila.mesa && (
-                            <span className="ml-1 text-[11px] font-semibold text-amber-300">
-                              (🪑 {fila.mesa})
-                            </span>
-                          )}{' '}
-                          · {fila.artist}
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {mostrarPlayEnFila && (
-                          <form action={iniciarTurnoMovilAction} className="shrink-0">
-                            <input type="hidden" name="code" value={code} />
-                            <input type="hidden" name="queueItemId" value={fila.id} />
-                            <button
-                              type="submit"
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 text-xs font-bold text-emerald-300 hover:bg-emerald-500/30 transition active:scale-95"
-                            >
-                              ▶ Play
-                            </button>
-                          </form>
-                        )}
-                        {mia && fila.status === 'waiting' && (
-                          <form action={cancelarAction} className="shrink-0">
-                            <input type="hidden" name="code" value={code} />
-                            <input type="hidden" name="queueItemId" value={fila.id} />
-                            <BotonCancelar />
-                          </form>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
             )}
           </section>
         )}

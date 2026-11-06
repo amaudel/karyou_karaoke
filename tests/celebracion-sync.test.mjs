@@ -22,7 +22,8 @@ test('repetir canción jamás evita la autorización del siguiente turno en la T
 
 test('el Play secundario de cola tampoco se muestra durante la celebración', () => {
   const sala=readFileSync('src/app/sala/[code]/page.tsx','utf8');
-  assert.match(sala,/!celebracionBloqueada && !estado.sonando && indice === 0/);
+  assert.match(sala, /const siguienteTurno = estado\.esperando\[0\]/);
+  assert.match(sala, /!celebracionBloqueada && !estado\.sonando &&\s*\(siguienteEsMio \|\| turnoInactivoDesbloqueado\)/);
 });
 
 test('la TV confirma inicio tanto con canciones en cola como sin canciones', () => {
