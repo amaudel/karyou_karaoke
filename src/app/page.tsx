@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { getStats } from '@/db/queries.mjs';
 import { listarSesiones } from '@/db/sessions.mjs';
 import { crearSesionAction } from './sala/actions';
 
 import FormularioCrearNoche from '@/components/FormularioCrearNoche';
+import BotonEliminarSala from '@/components/BotonEliminarSala';
+import { cookiePropietarioSala, esPropietarioSala } from '@/db/session-owners.mjs';
 
 // La base de datos es local y cambia sin pasar por el build: nada de render estático.
 export const dynamic = 'force-dynamic';
@@ -35,6 +38,15 @@ function Dato({
 export default async function Home() {
   const stats = await getStats();
   const sesiones = await listarSesiones();
+  const jar = await cookies();
+  const tokenBar = jar.get('karyou_bar_owner')?.value;
+  // No mostrar una acción destructiva a los invitados que solo conocen el QR.
+  const salas = await Promise.all(sesiones.map(async (s) => ({
+    ...s,
+    puedeEliminar: await esPropietarioSala(
+      s.id, jar.get(cookiePropietarioSala(s.code))?.value, tokenBar,
+    ),
+  })));
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)] w-full overflow-hidden rounded-3xl border border-purple-900/40 bg-gradient-to-b from-[#0c071e] via-[#110a28] to-[#070312] p-6 sm:p-10 text-white shadow-2xl">
@@ -53,13 +65,13 @@ export default async function Home() {
         </section>
 
         {/* ---------------------------------------------------- noches abiertas */}
-        {sesiones.length > 0 && (
+        {salas.length > 0 && (
           <section id="salas-abiertas" className="scroll-mt-20 space-y-4">
             <h2 className="text-xl font-black text-white uppercase tracking-wide border-b border-purple-800/40 pb-3">
               Noches abiertas
             </h2>
             <ul className="divide-y divide-purple-800/30 overflow-hidden rounded-3xl border border-purple-500/20 bg-purple-950/20 backdrop-blur-md shadow-xl">
-              {sesiones.map((s) => (
+              {salas.map((s) => (
                 <li key={s.id} className="flex flex-wrap items-center gap-4 p-5 transition hover:bg-purple-900/30">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -98,6 +110,7 @@ export default async function Home() {
                     >
                       📺 Pantalla TV
                     </Link>
+                    {s.puedeEliminar && <BotonEliminarSala code={s.code} nombre={s.name} />}
                   </div>
                 </li>
               ))}

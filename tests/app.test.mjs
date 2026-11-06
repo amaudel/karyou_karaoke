@@ -1798,3 +1798,52 @@ test('cada nueva puntuación permite una única confirmación distinta',async()=
   assert.ok((await confirmarPresentacionCelebracion(sesion.id,y.queueItemId))>0);
   assert.equal(await confirmarPresentacionCelebracion(sesion.id,x.queueItemId),0,'score anterior ya no controla la TV');
 });
+
+
+test('eliminar sala exige token propietario y borra solo los datos de esa sala', async () => {
+  const {
+    registrarPropietarioSala, esPropietarioSala, eliminarSalaAutorizada,
+  } = await import('../src/db/session-owners.mjs');
+  const a = await crearSesion('Eliminar casa de prueba');
+  const b = await crearSesion('Conservar otra sala');
+  const tokenA = await registrarPropietarioSala(a.id);
+  const tokenB = await registrarPropietarioSala(b.id);
+  const cantante = await unirseSesion(a.code, 'Cantante borrar');
+  const turno = await pedirCancion(a.code, cantante.token, 'wt-pY4mI2rs');
+  assert.equal(turno.ok, true);
+
+  assert.equal(await esPropietarioSala(a.id, undefined, undefined), false);
+  assert.equal(await esPropietarioSala(a.id, tokenB, undefined), false);
+  assert.equal(await esPropietarioSala(a.id, tokenA, undefined), true);
+  assert.equal((await eliminarSalaAutorizada(a.code, undefined, undefined)).ok, false);
+  assert.equal((await eliminarSalaAutorizada(a.code, tokenB, undefined)).ok, false);
+  assert.ok(await obtenerSesion(a.code), 'una petición no autorizada no debe borrar datos');
+  assert.equal((await eliminarSalaAutorizada(a.code, tokenA, undefined)).ok, true);
+
+  assert.equal(await obtenerSesion(a.code), null);
+  assert.ok(await obtenerSesion(b.code), 'otra sala no se borra');
+  const db = await getDb();
+  for (const tabla of ['participants', 'queue_items', 'session_owners']) {
+    const fila = await db.prepare('select count(*) as n from ' + tabla + ' where session_id=?').get(a.id);
+    assert.equal(Number(fila.n), 0, tabla + ' no debe conservar registros huérfanos');
+  }
+  assert.equal((await eliminarSalaAutorizada(a.code, tokenA, undefined)).ok, false);
+});
+
+test('bar antiguo se puede borrar con cookie de su dueño sin borrar las promociones del bar', async () => {
+  const { registrarNuevaSalaBar, huellaPropietario } = await import('../src/db/bar-ads.mjs');
+  const { eliminarSalaAutorizada, esPropietarioSala } = await import('../src/db/session-owners.mjs');
+  const bar = await crearSesion('Bar existente', 'bar');
+  const otro = await crearSesion('Bar ajeno', 'bar');
+  const dueñoBar = await registrarNuevaSalaBar(bar.id, 'Bar existente', undefined);
+  const dueñoOtro = await registrarNuevaSalaBar(otro.id, 'Bar ajeno', undefined);
+  assert.equal(await esPropietarioSala(bar.id, undefined, dueñoBar), true);
+  assert.equal((await eliminarSalaAutorizada(bar.code, undefined, dueñoOtro)).ok, false);
+  assert.equal((await eliminarSalaAutorizada(bar.code, undefined, dueñoBar)).ok, true);
+  const db = await getDb();
+  const local = await db.prepare(
+    'select id from bar_venues where owner_token_hash=?'
+  ).get(huellaPropietario(dueñoBar));
+  assert.ok(local, 'el establecimiento se conserva para futuras salas');
+  assert.equal(await obtenerSesion(otro.code) !== null, true);
+});
