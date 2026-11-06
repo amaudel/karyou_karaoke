@@ -1,0 +1,38 @@
+name: Verificar guías en móvil
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/components/Tour*.tsx'
+      - 'src/app/sala/**'
+      - 'tests/tour-ui.mjs'
+      - '.github/workflows/tour-ui.yml'
+permissions:
+  contents: read
+jobs:
+  tour-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: npm install --prefix /tmp/karyou-ui-test playwright@1.56.1
+      - run: /tmp/karyou-ui-test/node_modules/.bin/playwright install --with-deps chromium
+      - run: corepack pnpm db:setup
+      - name: Iniciar servidor local aislado
+        run: |
+          corepack pnpm dev > /tmp/karyou-next.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://localhost:3000/ >/dev/null && exit 0; sleep 2; done
+          cat /tmp/karyou-next.log
+          exit 1
+      - run: node tests/tour-ui.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: capturas-guia-movil
+          path: tour-*.png
+          if-no-files-found: ignore

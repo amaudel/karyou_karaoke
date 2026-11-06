@@ -37,3 +37,23 @@ export async function crearBar(form: FormData) {
   catch { redirect('/bar?error=nombre'); }
   redirect('/bar');
 }
+
+export async function recuperarClave(form: FormData) {
+  const auth = await supabaseServidor();
+  const email = String(form.get('email') || '').trim();
+  // Respuesta uniforme para no revelar si existe una cuenta.
+  await auth.auth.resetPasswordForEmail(email);
+  redirect('/bar?mensaje=recuperacion');
+}
+
+export async function cambiarClave(form: FormData) {
+  const user = await usuarioBar();
+  if (!user) redirect('/bar?error=enlace');
+  const password = String(form.get('password') || '');
+  const confirmacion = String(form.get('confirmacion') || '');
+  if (password.length < 8 || password !== confirmacion) redirect('/bar/nueva-clave?error=clave');
+  const auth = await supabaseServidor();
+  const { error } = await auth.auth.updateUser({ password });
+  if (error) redirect('/bar/nueva-clave?error=actualizar');
+  redirect('/bar?mensaje=actualizada');
+}

@@ -25,6 +25,7 @@ import {
   BotonImportarUrl,
 } from '@/components/BotonesAccion';
 import FormularioBuscar from '@/components/FormularioBuscar';
+import TourParticipante from '@/components/TourParticipante';
 import { contarAplausos, yaAplaudio, rankingDeSesion, rankingMesasDeSesion, revanchaPendiente } from '@/db/puntuaciones.mjs';
 import { mensajeDeError } from '../mensajes';
 import {
@@ -243,9 +244,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
               )}
             </div>
           </div>
-          <span className="rounded-xl border border-purple-500/30 bg-purple-950/60 px-3 py-1.5 font-mono text-sm font-black tracking-[0.25em] text-amber-300">
-            {code}
-          </span>
+          <div className="flex items-center gap-2"><TourParticipante /><span className="rounded-xl border border-purple-500/30 bg-purple-950/60 px-3 py-1.5 font-mono text-sm font-black tracking-[0.25em] text-amber-300">{code}</span></div>
         </header>
 
         {aviso && (
@@ -511,7 +510,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
         )}
 
         {/* -------------------------------------------------------- buscar */}
-        <FormularioBuscar consultaInicial={consulta} />
+        <div data-karyou-tour="busqueda"><FormularioBuscar consultaInicial={consulta} /></div>
 
         {consulta && (
           <section className="space-y-3">

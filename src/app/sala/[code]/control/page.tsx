@@ -8,6 +8,7 @@ import { propietarioDeSala } from '@/db/bar-ads.mjs';
 import { notFound } from 'next/navigation';
 import Refresco from '@/components/Refresco';
 import AccesosTV from '@/components/AccesosTV';
+import TourBar from '@/components/TourBar';
 import { obtenerSesion, estadoSesion, normalizarCodigo } from '@/db/sessions.mjs';
 import { rankingDeSesion, rankingMesasDeSesion } from '@/db/puntuaciones.mjs';
 import {
@@ -49,7 +50,8 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
           <p className="mt-1 text-sm text-purple-200/80">{sesion.name} · Código <strong className="text-amber-300">{code}</strong> · {sesion.modo === 'bar' ? 'Modo Bar' : 'Modo Casa'}</p>
           <p className="mt-1 text-xs text-purple-300/70">Controles operativos separados de la pantalla pública. Mantén la TV abierta en otra pestaña o dispositivo.</p>
         </div>
-        <Link href={`/sala/${code}/tv`} target="_blank" rel="noopener noreferrer"
+        {sesion.modo === 'bar' && sesion.status !== 'finished' && <TourBar />}
+        <Link data-karyou-tour-bar="tv" href={`/sala/${code}/tv`} target="_blank" rel="noopener noreferrer"
           className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-sm font-black">
           📺 Abrir pantalla pública ↗
         </Link>
@@ -74,7 +76,7 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
         </div>
       )}
       {sesion.modo === 'bar' && (
-        <Link href={`/sala/${code}/control/publicidad`}
+        <Link data-karyou-tour-bar="promos" href={`/sala/${code}/control/publicidad`}
           className="flex items-center justify-between gap-3 rounded-2xl border border-amber-400/45 bg-gradient-to-r from-[#3a114d] via-[#381047] to-[#19092a] p-5 shadow-lg shadow-fuchsia-950/40 transition hover:border-amber-300">
           <span><strong className="block text-lg font-black text-amber-200">✦ Karyou Bar Ads</strong>
             <span className="text-sm text-purple-100">Subir promos, programarlas y presentarlas como parte del espectáculo</span></span>
@@ -89,7 +91,7 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
       ) : (
         <div className="grid gap-5 lg:grid-cols-3">
           <section className="space-y-4 rounded-2xl border border-pink-500/30 bg-purple-950/50 p-5 lg:col-span-2">
-            <h2 className="text-lg font-black text-pink-200">🎤 Turno actual</h2>
+            <h2 data-karyou-tour-bar="turnos" className="text-lg font-black text-pink-200">🎤 Turno actual</h2>
             {enPantalla ? (
               <>
                 <div className="rounded-xl bg-purple-900/40 p-4">
@@ -149,7 +151,7 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
           </section>
           <aside className="space-y-4">
             <section className="rounded-2xl border border-purple-500/30 bg-purple-950/50 p-5">
-              <h2 className="mb-3 text-lg font-black">⚙ Ajustes de sala</h2>
+              <h2 data-karyou-tour-bar="ajustes" className="mb-3 text-lg font-black">⚙ Ajustes de sala</h2>
               <div className="mb-5 space-y-3">
                 <p className="text-sm font-bold text-purple-100">✨ Intensidad del espectáculo en TV</p>
                 <div className="grid gap-2">

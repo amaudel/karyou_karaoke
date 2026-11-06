@@ -12,6 +12,7 @@ import {
   cancelarPeticion,
   iniciarTurno,
   iniciarTurnoMovil,
+  identificar,
   saltarTurnoInactivo,
   cerrarTurno,
   moverEnCola,
@@ -257,6 +258,10 @@ export async function iniciarTurnoAction(formData: FormData) {
 export async function iniciarTurnoMovilAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
   const token = await tokenDe(code);
+  const sesion = await obtenerSesion(code);
+  if (sesion && await salaTieneCuenta(sesion.id) && !(await identificar(code, token))) {
+    throw new Error('Debes ingresar a la sala antes de iniciar un turno.');
+  }
   const res = await iniciarTurnoMovil(code, token, Number(formData.get('queueItemId')));
 
   revalidatePath(`/sala/${code}`);
