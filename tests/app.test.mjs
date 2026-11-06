@@ -1263,7 +1263,7 @@ test('terminar naturalmente sin started_at registrado no penaliza con abandono n
   assert.notEqual(cierre.resultado.total, 69);
 });
 
-test('Modo Bar: intercala la cola por rondas (Round-Robin) y limita a 2 canciones pendientes', async () => {
+test('Modo Bar: ofrece hasta cinco canciones pendientes y tandas de dos por mesa', async () => {
   const { cambiarModoSesion } = await import('../src/db/sessions.mjs');
   const { code, modo } = await crearSesion('Bar La Trova', 'bar');
   assert.equal(modo, 'bar');
@@ -1272,32 +1272,41 @@ test('Modo Bar: intercala la cola por rondas (Round-Robin) y limita a 2 cancione
   assert.equal(sesion.name, 'Bar La Trova');
   assert.equal(sesion.modo, 'bar');
 
-  const ana = await unirseSesion(code, 'Ana');
-  const luis = await unirseSesion(code, 'Luis');
+  const ana = await unirseSesion(code, 'Ana', undefined, 'Mesa 1');
+  const luis = await unirseSesion(code, 'Luis', undefined, 'Mesa 2');
+  const pistasAna = ['wt-pY4mI2rs', 'U5TiuzOkJEY', 'K4HvVN1lVAQ', 'rfwVxgkx_Q8', '9mAr1eDTRvo'];
+  const pedidosAna = [];
+  for (const videoId of pistasAna) {
+    const res = await pedirCancion(code, ana.token, videoId);
+    assert.equal(res.ok, true);
+    pedidosAna.push(res);
+  }
+  const sexta = await pedirCancion(code, ana.token, 'n5FzZJ0bpug');
+  assert.equal(sexta.ok, false);
+  assert.equal(sexta.error, 'LIMITE_ALCANZADO_BAR');
 
-  // Ana pide 2 canciones seguidas
-  const a1 = await pedirCancion(code, ana.token, 'wt-pY4mI2rs');
-  const a2 = await pedirCancion(code, ana.token, 'U5TiuzOkJEY');
-  assert.equal(a1.ok, true);
-  assert.equal(a2.ok, true);
-
-  // En Modo Bar la 3ra canción pendiente se bloquea (límite = 2)
-  const a3 = await pedirCancion(code, ana.token, 'K4HvVN1lVAQ');
-  assert.equal(a3.ok, false);
-  assert.equal(a3.error, 'LIMITE_ALCANZADO');
-
-  // Luis (otra mesa) pide su primera canción: debe intercalarse ANTES de la segunda de Ana
   const l1 = await pedirCancion(code, luis.token, 'n5FzZJ0bpug');
+  const l2 = await pedirCancion(code, luis.token, 'vNfNjG5Q6FU');
   assert.equal(l1.ok, true);
-
+  assert.equal(l2.ok, true);
   const estado = await estadoSesion(code);
+  assert.equal(estado.limitePendientes, 5);
   assert.deepEqual(
     estado.esperando.map((f) => f.nickname),
-    ['Ana', 'Luis', 'Ana'],
-    'la 1ra canción de Luis debe ir antes que la 2da de Ana en Modo Bar',
+    ['Ana', 'Ana', 'Luis', 'Luis', 'Ana', 'Ana', 'Ana'],
+    'dos canciones de la misma mesa, dos de la siguiente y luego otra ronda',
   );
+  assert.equal(estado.esperando[0].id, pedidosAna[0].queueItemId);
 
-  // Si se cambia el modo en caliente a casa, se actualiza el modo de la sesión
+  // El cupo en Bar es de canciones EN ESPERA, no incluye la que ya suena.
+  const inicio = await iniciarTurno(code, pedidosAna[0].queueItemId);
+  assert.equal(inicio.ok, true);
+  const nueva = await pedirCancion(code, ana.token, 'n5FzZJ0bpug');
+  assert.equal(nueva.ok, true);
+  const duranteActuacion = await estadoSesion(code);
+  assert.equal(duranteActuacion.sonando.id, pedidosAna[0].queueItemId);
+  assert.equal(duranteActuacion.esperando.filter((f) => f.participant_id === ana.participantId).length, 5);
+
   await cambiarModoSesion(code, 'casa');
   const estadoCasa = await estadoSesion(code);
   assert.equal(estadoCasa.modo, 'casa');
@@ -1309,19 +1318,54 @@ test('Modo Bar: alterna cantantes dentro de una mesa sin adelantar la canción v
   const ana = await unirseSesion(code, 'AnaMesa', undefined, 'Mesa 1');
   const bea = await unirseSesion(code, 'BeaMesa', undefined, 'Mesa 1');
   const carlos = await unirseSesion(code, 'CarlosMesa', undefined, 'Mesa 2');
+
   const a1 = await pedirCancion(code, ana.token, 'wt-pY4mI2rs');
   const a2 = await pedirCancion(code, ana.token, 'U5TiuzOkJEY');
   const b1 = await pedirCancion(code, bea.token, 'K4HvVN1lVAQ');
+  const b2 = await pedirCancion(code, bea.token, 'rfwVxgkx_Q8');
   const c1 = await pedirCancion(code, carlos.token, 'n5FzZJ0bpug');
-  assert.equal(a1.ok, true);
-  assert.equal(a2.ok, true);
-  assert.equal(b1.ok, true);
-  assert.equal(c1.ok, true);
+  const c2 = await pedirCancion(code, carlos.token, 'vNfNjG5Q6FU');
+  for (const pedido of [a1, a2, b1, b2, c1, c2]) assert.equal(pedido.ok, true);
+
   const estado = await estadoSesion(code);
-  assert.deepEqual(estado.esperando.map((f) => f.nickname),
-    ['AnaMesa', 'CarlosMesa', 'BeaMesa', 'AnaMesa']);
+  assert.deepEqual(
+    estado.esperando.map((f) => f.nickname),
+    ['AnaMesa', 'BeaMesa', 'CarlosMesa', 'CarlosMesa', 'AnaMesa', 'BeaMesa'],
+  );
   assert.equal(estado.esperando[0].id, a1.queueItemId, 'la TV no cambia de cantante');
-  assert.equal(estado.limitePendientes, 2);
+  assert.equal(estado.limitePendientes, 5);
+});
+
+test('Modo Bar: respeta la ronda ya iniciada cuando alguien vuelve a pedir canciones', async () => {
+  const { cerrarTurno } = await import('../src/db/sessions.mjs');
+  const { code } = await crearSesion('Bar Rondas', 'bar');
+  const ana = await unirseSesion(code, 'Ana', undefined, 'Mesa 1');
+  const luis = await unirseSesion(code, 'Luis', undefined, 'Mesa 2');
+
+  const a1 = await pedirCancion(code, ana.token, 'wt-pY4mI2rs');
+  const a2 = await pedirCancion(code, ana.token, 'U5TiuzOkJEY');
+  const a3 = await pedirCancion(code, ana.token, 'K4HvVN1lVAQ');
+  const b1 = await pedirCancion(code, luis.token, 'n5FzZJ0bpug');
+  const b2 = await pedirCancion(code, luis.token, 'vNfNjG5Q6FU');
+  assert.deepEqual(
+    (await estadoSesion(code)).esperando.map((f) => f.id),
+    [a1.queueItemId, a2.queueItemId, b1.queueItemId, b2.queueItemId, a3.queueItemId],
+  );
+
+  await cerrarTurno(code, a1.queueItemId, 'done');
+  const a4 = await pedirCancion(code, ana.token, 'rfwVxgkx_Q8');
+  assert.deepEqual(
+    (await estadoSesion(code)).esperando.map((f) => f.id),
+    [a2.queueItemId, b1.queueItemId, b2.queueItemId, a3.queueItemId, a4.queueItemId],
+    'la segunda canción de Mesa 1 completa su tanda, sin robarle turno a Mesa 2',
+  );
+
+  await cerrarTurno(code, a2.queueItemId, 'done');
+  const a5 = await pedirCancion(code, ana.token, '9mAr1eDTRvo');
+  assert.deepEqual(
+    (await estadoSesion(code)).esperando.map((f) => f.id),
+    [b1.queueItemId, b2.queueItemId, a3.queueItemId, a4.queueItemId, a5.queueItemId],
+  );
 });
 
 test('Modo Bar: reserva el botón Play al dueño durante 60s y luego permite saltar turno ausente', async () => {

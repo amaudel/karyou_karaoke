@@ -17,6 +17,7 @@ export const MENSAJES: Record<string, string> = {
   PISTA_INVALIDA: 'Esa pista no es válida.',
   PISTA_NO_DISPONIBLE: 'Esa pista no se puede reproducir. Prueba otra.',
   LIMITE_ALCANZADO: `Ya tienes ${LIMITE_PENDIENTES} canciones pedidas. Espera a cantar alguna.`,
+  LIMITE_ALCANZADO_BAR: 'Ya tienes 5 canciones en espera. Cuando empiece una de tus canciones, podrás añadir otra.',
   YA_PEDIDA: 'Ya la tienes pedida.',
   NO_ES_TUYA_O_YA_EMPEZO: 'Solo puedes cancelar tus propias canciones y antes de empezar.',
   TURNO_NO_EXISTE: 'Ese turno ya no existe.',

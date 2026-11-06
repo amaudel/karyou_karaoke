@@ -536,7 +536,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
           <section className="space-y-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-sm font-black tracking-wider text-white uppercase">
-                La cola de turnos {esModoBar && <span className="text-xs font-semibold text-amber-300/80 normal-case">· Intercalada por mesas</span>}
+                La cola de turnos {esModoBar && <span className="text-xs font-semibold text-amber-300/80 normal-case">· Hasta 2 canciones por mesa en cada ronda</span>}
               </h2>
               <span className="rounded-full border border-purple-500/30 bg-purple-950/50 px-3 py-0.5 text-xs font-bold text-purple-300">
                 {misPendientes} de {limiteSala} tuyas
