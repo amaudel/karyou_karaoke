@@ -24,6 +24,11 @@ import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
 import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
 import { omitirCelebracion, confirmarPresentacionCelebracion } from '@/domain/celebracion.mjs';
+import {
+  cookiePropietarioSala,
+  registrarPropietarioSala,
+  eliminarSalaAutorizada,
+} from '@/db/session-owners.mjs';
 
 /** Nombre de la cookie con la que un invitado se identifica en una sala. */
 function nombreCookie(code: string) {
@@ -44,6 +49,14 @@ export async function crearSesionAction(formData: FormData) {
   const modo = modoRaw === 'bar' ? 'bar' : 'casa';
   const porDefecto = modo === 'bar' ? 'Karaoke Bar' : 'Karaoke en casa';
   const { code } = await crearSesion(nombre || porDefecto, modo);
+  // El navegador creador recibe un token httpOnly exclusivo de esta sala.
+  // No se asume propiedad por conocer el código público o entrar como cantante.
+  const tokenPropietario = await registrarPropietarioSala((await obtenerSesion(code)).id);
+  const jarPropietario = await cookies();
+  jarPropietario.set(cookiePropietarioSala(code), tokenPropietario, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict', path: '/', maxAge: 60 * 60 * 24 * 180,
+  });
   if (modo === 'bar') {
     const sesion = await obtenerSesion(code);
     if (!sesion) throw new Error('No se pudo vincular el bar a la sala.');
@@ -59,6 +72,41 @@ export async function crearSesionAction(formData: FormData) {
   revalidatePath('/');
   // Se abre directamente la pantalla de TV: es lo primero que hace falta.
   redirect(`/sala/${code}/tv`);
+}
+
+/* ------------------------------------------------------------ eliminar sala */
+
+/** El servidor comprueba la segunda confirmación y la propiedad antes del DELETE. */
+export async function eliminarSesionAction(
+  _estado: { error: string },
+  formData: FormData,
+): Promise<{ error: string }> {
+  const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  const confirmacion = String(formData.get('confirmacion') ?? '').trim().toUpperCase();
+  if (!/^[0-9A-HJKMNP-TV-Z]{6}$/.test(code) || confirmacion !== code) {
+    return { error: 'El código escrito no coincide con la sala.' };
+  }
+
+  const jar = await cookies();
+  const resultado = await eliminarSalaAutorizada(
+    code,
+    jar.get(cookiePropietarioSala(code))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  );
+  if (!resultado.ok) {
+    return {
+      error: resultado.error === 'SESION_NO_EXISTE'
+        ? 'Esta sala ya no existe.'
+        : 'No tienes permiso para eliminar esta sala desde este dispositivo.',
+    };
+  }
+
+  jar.delete(cookiePropietarioSala(code));
+  revalidatePath('/');
+  revalidatePath(`/sala/${code}`);
+  revalidatePath(`/sala/${code}/tv`);
+  revalidatePath(`/sala/${code}/control`);
+  redirect('/');
 }
 
 /* ------------------------------------------------------------------ entrar */
