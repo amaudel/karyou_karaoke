@@ -29,7 +29,8 @@ export default function TourParticipante() {
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
     };
-    document.querySelector(PASOS[paso]!.selector)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const destino = document.querySelector(PASOS[paso]!.selector);
+    if (destino) window.scrollBy({ top: destino.getBoundingClientRect().top - 110, behavior: 'smooth' });
     actualizar();
     window.addEventListener('scroll', actualizar, true);
     window.addEventListener('resize', actualizar);
@@ -52,7 +53,7 @@ export default function TourParticipante() {
           <p className="text-xs font-bold uppercase tracking-widest text-pink-300">🎤 Bienvenido a Karyou</p>
           <h2 className="mt-2 text-xl font-black">¡Tu canción empieza aquí!</h2>
           <p className="mt-2 text-sm leading-relaxed text-purple-100">Te mostramos en cuatro pasos cómo pedir canciones y seguir tu turno.</p>
-          <div className="mt-5 flex flex-wrap gap-3"><button type="button" onClick={() => { setBienvenida(false); setPaso(0); }} className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-sm font-bold">Muéstrame cómo</button><button type="button" onClick={terminar} className="rounded-xl px-4 py-3 text-sm font-bold text-purple-200">Ya sé usarlo</button></div>
+          <div className="mt-5 flex flex-wrap gap-3"><button type="button" autoFocus onClick={() => { setBienvenida(false); setPaso(0); }} className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-sm font-bold">Muéstrame cómo</button><button type="button" onClick={terminar} className="rounded-xl px-4 py-3 text-sm font-bold text-purple-200">Ya sé usarlo</button></div>
         </> : paso !== null && <>
           <p className="text-xs font-bold uppercase tracking-widest text-pink-300">Paso {paso + 1} de {PASOS.length}</p>
           <h2 className="mt-2 text-xl font-black">{PASOS[paso]!.titulo}</h2>
