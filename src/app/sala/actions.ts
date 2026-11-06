@@ -48,10 +48,10 @@ export async function crearSesionAction(formData: FormData) {
   const modoRaw = String(formData.get('modo') ?? 'casa');
   const modo = modoRaw === 'bar' ? 'bar' : 'casa';
   const porDefecto = modo === 'bar' ? 'Karaoke Bar' : 'Karaoke en casa';
-  const { code } = await crearSesion(nombre || porDefecto, modo);
+  const { code, id } = await crearSesion(nombre || porDefecto, modo);
   // El navegador creador recibe un token httpOnly exclusivo de esta sala.
   // No se asume propiedad por conocer el código público o entrar como cantante.
-  const tokenPropietario = await registrarPropietarioSala((await obtenerSesion(code)).id);
+  const tokenPropietario = await registrarPropietarioSala(id);
   const jarPropietario = await cookies();
   jarPropietario.set(cookiePropietarioSala(code), tokenPropietario, {
     httpOnly: true, secure: process.env.NODE_ENV === 'production',
