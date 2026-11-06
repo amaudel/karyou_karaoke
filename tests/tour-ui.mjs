@@ -20,7 +20,8 @@ async function probarTour(url, titulos, clave) {
     assert.equal(await dialog.getByText(`Paso ${i + 1} de 4`).count(), 1);
     const frame = await dialog.boundingBox();
     assert(frame && frame.width <= 390, 'El diálogo debe caber en el celular');
-    if (i === 0) await page.screenshot({ path: `tour-${clave}.png` });
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: `tour-${clave}-${i + 1}.png` });
     if (i < 3) await dialog.getByRole('button', { name: 'Siguiente' }).click();
   }
   await dialog.getByRole('button', { name: '¡Entendido!' }).click();
