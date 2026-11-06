@@ -426,7 +426,7 @@ export async function pedirCancion(codigo, token, videoId) {
                and (status = 'waiting' or (? = 'casa' and status = 'singing'))`,
         ).get(quien.sesion.id, quien.participante.id, quien.sesion.modo)
       ).n;
-      if (pendientes >= limite) return { ok: false, error: 'LIMITE_ALCANZADO' };
+      if (pendientes >= limite) return { ok: false, error: quien.sesion.modo === 'bar' ? 'LIMITE_ALCANZADO_BAR' : 'LIMITE_ALCANZADO' };
 
       const ultima = (
         await tx.prepare(
