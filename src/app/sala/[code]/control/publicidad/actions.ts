@@ -1,5 +1,7 @@
 'use server';
 
+import { usuarioBar } from '@/lib/auth/server';
+
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -18,7 +20,7 @@ async function autorizacion(code: string) {
   const sesion = await obtenerSesion(code);
   if (!sesion || sesion.modo !== 'bar') throw new Error('La publicidad solo está disponible en Modo Bar.');
   const token = (await cookies()).get('karyou_bar_owner')?.value;
-  const bar = await propietarioDeSala(sesion.id,token);
+  const bar = await propietarioDeSala(sesion.id,token,(await usuarioBar())?.id);
   if (!bar) throw new Error('Solo el dueño que creó este bar puede cambiar promociones.');
   return { bar, sesion };
 }

@@ -1,3 +1,6 @@
+import { usuarioBar } from '@/lib/auth/server';
+import { salaTieneCuenta, cuentaEsPropietariaDeSala } from '@/db/bar-accounts.mjs';
+import { redirect } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import QRCode from 'qrcode';
 import EscenarioTV from '@/components/EscenarioTV';
@@ -34,6 +37,10 @@ export default async function PantallaPage({ params, searchParams }: Props) {
 
   const sesion = await obtenerSesion(code);
   if (!sesion) notFound();
+  if (await salaTieneCuenta(sesion.id)) {
+    const user = await usuarioBar();
+    if (!user || !(await cuentaEsPropietariaDeSala(user.id, sesion.id))) redirect('/bar');
+  }
 
   const estado = (await estadoSesion(code)) as EstadoVista | null;
   if (!estado) notFound();
