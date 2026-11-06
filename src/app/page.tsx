@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { usuarioBar } from '@/lib/supabase/server';
+import { usuarioBar } from '@/lib/auth/server';
 import { salaTieneCuenta } from '@/db/bar-accounts.mjs';
 import { cookies } from 'next/headers';
 import { getStats } from '@/db/queries.mjs';

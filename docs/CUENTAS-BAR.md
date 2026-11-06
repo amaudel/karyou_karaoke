@@ -1,17 +1,14 @@
 # Cuentas para bares: piloto
 
-Cada usuario autenticado puede crear un establecimiento. Sus salas se vinculan al establecimiento y sus promociones se gestionan desde la sala. El acceso de las salas existentes basadas en cookie se conserva; no se traspasan automáticamente a una cuenta.
+La autenticación usa Better Auth y la base de datos existente Turso (libSQL). Cada cuenta puede crear un establecimiento; sus salas y promociones se vinculan a él. Las salas existentes basadas en cookie se conservan y no se transfieren automáticamente.
 
-## Configuración para pruebas
+## Preparación antes de activar
 
-1. Usar un proyecto Supabase Auth exclusivo para Karyou; no utilizar el proyecto de NidoCerca. Configurar correo de confirmación y URLs de redirección para el dominio del entorno de prueba.
-2. Configurar `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; no colocar una clave secreta de servicio en variables públicas.
-3. Aplicar todas las migraciones SQLite en una copia de la base, incluida `013_cuentas_bar.sql`. En Turso de producción preparar respaldo y procedimiento de aplicación antes de activar el código. La migración no transfiere ni elimina datos.
-4. Crear dos cuentas confirmadas y un establecimiento por cuenta; comprobar creación, acceso desde otro navegador, QR, control, TV, promociones y denegación cruzada. La TV de una sala con cuenta debe tener iniciada la cuenta del bar; los cantantes se unen por QR sin cuenta.
-5. Comprobar límite de correos, recuperación de contraseña y configuración del servicio de email antes de ofrecer registro a clientes. Se debe probar el flujo de recuperación con el servicio de correo configurado.
+1. Preparar un entorno separado y una copia o base aislada de Turso. No utilizar la base de NidoCerca. Comprobar y respaldar la base de producción antes de cualquier migración.
+2. Aplicar en orden las migraciones SQLite `013_cuentas_bar.sql` y `014_better_auth.sql`. La segunda fue generada con Better Auth 1.7.18 y crea las tablas de usuarios, sesiones, cuentas, verificación y límites. No usar `db:reset` en producción.
+3. Configurar `BETTER_AUTH_SECRET` (secreto aleatorio de al menos 32 caracteres) y `BETTER_AUTH_URL` (origen exacto del entorno). Mantener las credenciales Turso en el servidor.
+4. Para registro y recuperación, configurar un servicio de correo transaccional compatible: `RESEND_API_KEY` y `KARYOU_EMAIL_FROM`, con remitente de dominio verificado. Sin correo configurado, el registro queda deshabilitado. No usar direcciones o claves de producción en pruebas.
+5. Ejecutar `node tests/auth-integration.mjs`, `pnpm test`, `pnpm typecheck` y `pnpm build`. Verificar con dos cuentas reales de prueba en un entorno aislado: confirmación y recuperación por correo, propiedad de salas, promociones, acceso cruzado, QR, TV y sesiones en varios dispositivos.
+6. La TV de una sala con cuenta requiere que se inicie sesión con la cuenta del bar en el navegador de la TV. Los cantantes se unen por QR sin cuenta.
 
-El registro sin cuenta y salas antiguas permanecen disponibles para compatibilidad. No habilitar venta masiva hasta validar autenticación real, recuperación de cuenta, pruebas en dispositivos, configuración de producción y la fuente comercial de música.
-
-## Plantillas de correo para confirmación y recuperación
-
-Configurar el Site URL en el dominio exacto del entorno. Las plantillas de Supabase Auth deben incluir, respectivamente, `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` y `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`. El servidor verifica cada token y usa redirecciones internas fijas. Antes de publicar, probar la entrega real y vencimiento de enlaces.
+Es necesario comprobar respaldo, activación de correo, límites de tráfico, recuperación de cuentas, supervisión y fuente comercial de música antes de ofrecer el servicio. Las salas antiguas se mantienen en modo de compatibilidad y no se asignan automáticamente.

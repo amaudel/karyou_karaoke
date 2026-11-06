@@ -1,4 +1,4 @@
-import { usuarioBar } from '@/lib/supabase/server';
+import { usuarioBar } from '@/lib/auth/server';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';

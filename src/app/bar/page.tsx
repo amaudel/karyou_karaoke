@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { usuarioBar } from '@/lib/supabase/server';
+import { usuarioBar } from '@/lib/auth/server';
 import { barDeCuenta } from '@/db/bar-accounts.mjs';
 import { getDb } from '@/db/client.mjs';
 import { entrarBar, registrarBar, salirBar, crearBar, recuperarClave } from './actions';
@@ -10,7 +10,7 @@ const boton = 'rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-
 
 export default async function CuentaBar({ searchParams }: { searchParams: Promise<{ error?: string; mensaje?: string }> }) {
   const query = await searchParams;
-  const configurado = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+  const configurado = Boolean(process.env.BETTER_AUTH_SECRET && process.env.BETTER_AUTH_URL);
   const user = configurado ? await usuarioBar() : null;
   const bar = user ? await barDeCuenta(user.id) : null;
   const salas = bar ? await (await getDb()).prepare(`select s.code, s.name, s.status from sessions s join bar_rooms r on r.session_id=s.id where r.venue_id=? order by s.id desc`).all(bar.id) : [];
@@ -18,7 +18,7 @@ export default async function CuentaBar({ searchParams }: { searchParams: Promis
     <Link href="/" className="text-purple-200">← Volver a Karyou</Link>
     <h1 className="text-3xl font-black">Cuenta para bares</h1>
     {!configurado && <p>El acceso para bares aún no está configurado.</p>}
-    {query.error && <p role="alert" className="rounded-xl bg-red-900/50 p-3">{query.error === 'clave' ? 'La contraseña debe tener al menos 8 caracteres.' : query.error === 'nombre' ? 'Escribe un nombre válido para el bar.' : 'No se pudo completar la operación. Revisa tus datos e inténtalo de nuevo.'}</p>}
+    {query.error && <p role="alert" className="rounded-xl bg-red-900/50 p-3">{query.error === 'correo' ? 'El servicio de correo todavía no está configurado.' : query.error === 'clave' ? 'La contraseña debe tener al menos 8 caracteres.' : query.error === 'nombre' ? 'Escribe un nombre válido para el bar.' : 'No se pudo completar la operación. Revisa tus datos e inténtalo de nuevo.'}</p>}
     {query.mensaje === 'recuperacion' && <p>Si existe una cuenta con ese correo, recibirás un enlace para cambiar tu contraseña.</p>}
     {query.mensaje === 'actualizada' && <p>Tu contraseña se actualizó correctamente.</p>}
     {query.mensaje === 'confirma' && <p>Revisa tu correo para confirmar la cuenta y luego inicia sesión.</p>}

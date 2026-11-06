@@ -1,59 +1,60 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { supabaseServidor, usuarioBar } from '@/lib/supabase/server';
+import { auth, usuarioBar } from '@/lib/auth/server';
 import { crearBarParaCuenta } from '@/db/bar-accounts.mjs';
 
 export async function entrarBar(form: FormData) {
-  const auth = await supabaseServidor();
-  const email = String(form.get('email') || '').trim();
-  const password = String(form.get('password') || '');
-  const { error } = await auth.auth.signInWithPassword({ email, password });
+  let error = false;
+  try { await auth.api.signInEmail({ body: { email: String(form.get('email') || '').trim(), password: String(form.get('password') || '') }, headers: await headers() }); }
+  catch { error = true; }
   if (error) redirect('/bar?error=acceso');
   redirect('/bar');
 }
 
 export async function registrarBar(form: FormData) {
-  const auth = await supabaseServidor();
+  if (!process.env.RESEND_API_KEY || !process.env.KARYOU_EMAIL_FROM) redirect('/bar?error=correo');
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
   if (password.length < 8) redirect('/bar?error=clave');
-  const { data, error } = await auth.auth.signUp({ email, password });
+  let error = false;
+  try { await auth.api.signUpEmail({ body: { email, password, name: email }, headers: await headers() }); }
+  catch { error = true; }
   if (error) redirect('/bar?error=registro');
-  if (!data.session) redirect('/bar?mensaje=confirma');
-  redirect('/bar');
+  redirect('/bar?mensaje=confirma');
 }
 
 export async function salirBar() {
-  const auth = await supabaseServidor();
-  await auth.auth.signOut();
+  await auth.api.signOut({ headers: await headers() });
   redirect('/bar');
 }
 
 export async function crearBar(form: FormData) {
   const user = await usuarioBar();
   if (!user) redirect('/bar');
+  let error = false;
   try { await crearBarParaCuenta(user.id, form.get('nombre')); }
-  catch { redirect('/bar?error=nombre'); }
+  catch { error = true; }
+  if (error) redirect('/bar?error=nombre');
   redirect('/bar');
 }
 
 export async function recuperarClave(form: FormData) {
-  const auth = await supabaseServidor();
-  const email = String(form.get('email') || '').trim();
-  // Respuesta uniforme para no revelar si existe una cuenta.
-  await auth.auth.resetPasswordForEmail(email);
+  if (!process.env.RESEND_API_KEY || !process.env.KARYOU_EMAIL_FROM) redirect('/bar?error=correo');
+  try { await auth.api.requestPasswordReset({ body: { email: String(form.get('email') || '').trim(), redirectTo: '/bar/nueva-clave' }, headers: await headers() }); }
+  catch { /* Respuesta uniforme para no revelar si existe una cuenta. */ }
   redirect('/bar?mensaje=recuperacion');
 }
 
 export async function cambiarClave(form: FormData) {
-  const user = await usuarioBar();
-  if (!user) redirect('/bar?error=enlace');
   const password = String(form.get('password') || '');
+  const token = String(form.get('token') || '');
   const confirmacion = String(form.get('confirmacion') || '');
-  if (password.length < 8 || password !== confirmacion) redirect('/bar/nueva-clave?error=clave');
-  const auth = await supabaseServidor();
-  const { error } = await auth.auth.updateUser({ password });
-  if (error) redirect('/bar/nueva-clave?error=actualizar');
+  if (!token || password.length < 8 || password !== confirmacion) redirect('/bar?error=enlace');
+  let error = false;
+  try { await auth.api.resetPassword({ body: { newPassword: password, token }, headers: await headers() }); }
+  catch { error = true; }
+  if (error) redirect('/bar?error=enlace');
   redirect('/bar?mensaje=actualizada');
 }

@@ -1,6 +1,6 @@
 'use server';
 
-import { usuarioBar } from '@/lib/supabase/server';
+import { usuarioBar } from '@/lib/auth/server';
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';

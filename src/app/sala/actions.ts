@@ -25,7 +25,7 @@ import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
 import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
 import { barDeCuenta, asignarSalaACuenta, salaTieneCuenta, cuentaEsPropietariaDeSala } from '@/db/bar-accounts.mjs';
-import { usuarioBar } from '@/lib/supabase/server';
+import { usuarioBar } from '@/lib/auth/server';
 import { omitirCelebracion, confirmarPresentacionCelebracion } from '@/domain/celebracion.mjs';
 import {
   cookiePropietarioSala,

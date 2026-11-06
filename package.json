@@ -19,13 +19,15 @@
     "probar": "node scripts/probar.mjs",
     "encolar": "node scripts/encolar.mjs",
     "calibrar": "node scripts/calibrar-scoring.mjs",
-    "test": "node tests/all.mjs"
+    "test": "node tests/all.mjs",
+    "test:auth": "node tests/auth-integration.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.119.0",
+    "@libsql/kysely-libsql": "0.4.1",
     "@vercel/blob": "2.8.2",
+    "better-auth": "1.7.18",
+    "kysely": "0.29.8",
     "next": "^15.1.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { crearBaseDePrueba, borrarBaseDePrueba } from './fixture.mjs';
+
+const { dbPath, dir } = crearBaseDePrueba();
+process.env.KARAOKE_DB = dbPath;
+process.env.BETTER_AUTH_SECRET = 'local-test-only-secret-at-least-32-characters';
+process.env.BETTER_AUTH_URL = 'http://localhost:3000';
+delete process.env.TURSO_DATABASE_URL;
+delete process.env.TURSO_AUTH_TOKEN;
+const { crearAuth } = await import('../src/lib/auth/core.mjs');
+const correos = [];
+const auth = crearAuth({ sendEmail: async (to, subject, url) => { correos.push({to, subject, url}); } });
+const email = 'bar@example.test';
+const password = 'clave-segura-prueba-2026';
+try {
+  await auth.api.signUpEmail({ body: { email, password, name: 'Bar de prueba' } });
+  assert.equal(correos.length, 1);
+  await assert.rejects(auth.api.signInEmail({ body: { email, password } }));
+  const verify = await auth.handler(new Request(correos[0].url));
+  assert.ok(verify.status >= 200 && verify.status < 400, `confirmación: ${verify.status}`);
+  const login = await auth.api.signInEmail({ body: { email, password }, asResponse: true });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get('set-cookie');
+  assert.ok(cookie);
+  const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
+  assert.equal(session.user.email, email);
+  await auth.api.requestPasswordReset({ body: { email, redirectTo: '/bar/nueva-clave' } });
+  assert.equal(correos.length, 2);
+  const reset = await auth.handler(new Request(correos[1].url));
+  const location = reset.headers.get('location');
+  assert.ok(location);
+  const token = new URL(location, 'http://localhost:3000').searchParams.get('token');
+  assert.ok(token);
+  const nueva = 'nueva-clave-de-prueba-2026';
+  await auth.api.resetPassword({ body: { newPassword: nueva, token } });
+  await assert.rejects(auth.api.signInEmail({ body: { email, password } }));
+  const again = await auth.api.signInEmail({ body: { email, password: nueva }, asResponse: true });
+  assert.equal(again.status, 200);
+  const oldSession = await auth.api.getSession({ headers: new Headers({ cookie }) });
+  assert.equal(oldSession, null);
+  await assert.rejects(auth.api.resetPassword({ body: { newPassword: nueva, token } }));
+  console.log('Autenticación: registro, confirmación, ingreso, recuperación y revocación verificados.');
+} finally { borrarBaseDePrueba(dir); }
