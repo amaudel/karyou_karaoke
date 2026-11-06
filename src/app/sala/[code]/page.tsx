@@ -266,18 +266,19 @@ export default async function SalaPage({ params, searchParams }: Props) {
               🎶 Próximas canciones
             </h2>
             <span className="rounded-full border border-purple-500/30 bg-purple-950/50 px-3 py-1 text-xs font-bold text-purple-200">
-              {estado.esperando.length} pendientes · {misPendientes} de {limiteSala} tuyas
+              {estado.esperando.length} {estado.esperando.length === 1 ? 'pendiente' : 'pendientes'} · {misPendientes} de {limiteSala} tuyas
             </span>
           </div>
 
           {siguienteTurno ? (
             <div className="overflow-hidden rounded-2xl border border-amber-400/40 bg-purple-950/40 shadow-lg">
-              <div className="flex items-start gap-3 border-b border-amber-400/20 bg-gradient-to-r from-amber-500/15 to-purple-900/30 p-3.5 sm:p-4">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-sm font-black text-purple-950">
+              <div className="border-b border-amber-400/20 bg-gradient-to-r from-amber-500/15 to-purple-900/30 p-3.5 sm:p-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-sm font-black text-purple-950">
                   1
                 </span>
-                <div className="min-w-0 flex-1">
-                  <span className="inline-flex rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-amber-200 uppercase">
+                  <div className="min-w-0 flex-1">
+                    <span className="inline-flex max-w-full rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-amber-200 uppercase">
                     ⏭ Siguiente en cantar
                   </span>
                   <p className="mt-1.5 break-words text-base font-black leading-snug text-white sm:text-lg">
@@ -295,23 +296,27 @@ export default async function SalaPage({ params, searchParams }: Props) {
                     )}
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-col gap-2">
-                  {!celebracionBloqueada && !estado.sonando &&
-                    (siguienteEsMio || turnoInactivoDesbloqueado) && (
-                    <form action={iniciarTurnoMovilAction}>
-                      <input type="hidden" name="code" value={code} />
-                      <input type="hidden" name="queueItemId" value={siguienteTurno.id} />
-                      <BotonDarPlayTV texto="▶ Play" />
-                    </form>
-                  )}
-                  {siguienteEsMio && (
-                    <form action={cancelarAction}>
-                      <input type="hidden" name="code" value={code} />
-                      <input type="hidden" name="queueItemId" value={siguienteTurno.id} />
-                      <BotonCancelar />
-                    </form>
-                  )}
-                </div>
+                {/* Acciones fuera de la fila del título: el mensaje de carga nunca comprime el texto. */}
+                {((!celebracionBloqueada && !estado.sonando &&
+                  (siguienteEsMio || turnoInactivoDesbloqueado)) || siguienteEsMio) && (
+                  <div data-karyou-acciones-siguiente="separadas" className="mt-3 flex min-w-0 flex-wrap items-center gap-2 border-t border-amber-400/15 pt-3 sm:pl-12">
+                    {!celebracionBloqueada && !estado.sonando &&
+                      (siguienteEsMio || turnoInactivoDesbloqueado) && (
+                      <form action={iniciarTurnoMovilAction} className="min-w-0 w-full sm:w-auto">
+                        <input type="hidden" name="code" value={code} />
+                        <input type="hidden" name="queueItemId" value={siguienteTurno.id} />
+                        <BotonDarPlayTV texto="▶ Play" />
+                      </form>
+                    )}
+                    {siguienteEsMio && (
+                      <form action={cancelarAction} className="w-full sm:w-auto">
+                        <input type="hidden" name="code" value={code} />
+                        <input type="hidden" name="queueItemId" value={siguienteTurno.id} />
+                        <BotonCancelar />
+                      </form>
+                    )}
+                  </div>
+                )}
               </div>
               {estado.esperando.length > 1 && (
                 <ol start={2} className="max-h-52 divide-y divide-purple-800/40 overflow-y-auto overscroll-contain">
