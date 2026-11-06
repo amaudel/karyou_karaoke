@@ -1,3 +1,6 @@
+import { usuarioBar } from '@/lib/supabase/server';
+import { salaTieneCuenta, cuentaEsPropietariaDeSala } from '@/db/bar-accounts.mjs';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import CuentaRegresivaCelebracion from '@/components/CuentaRegresivaCelebracion';
@@ -21,6 +24,10 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
   const code = normalizarCodigo(raw);
   const sesion = await obtenerSesion(code);
   if (!sesion) notFound();
+  if (await salaTieneCuenta(sesion.id)) {
+    const user = await usuarioBar();
+    if (!user || !(await cuentaEsPropietariaDeSala(user.id, sesion.id))) redirect('/bar');
+  }
   const estado = (await estadoSesion(code)) as EstadoVista | null;
   if (!estado) notFound();
   const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
@@ -29,7 +36,7 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
   const enPantalla = estado.sonando ?? estado.esperando[0] ?? null;
   const {error} = await searchParams;
   const tokenDuenio = (await cookies()).get('karyou_bar_owner')?.value;
-  const puedeOmitir = sesion.modo === 'bar' && Boolean(await propietarioDeSala(sesion.id, tokenDuenio));
+  const puedeOmitir = sesion.modo === 'bar' && Boolean(await propietarioDeSala(sesion.id, tokenDuenio, (await usuarioBar())?.id));
   const pendientes = estado.sonando ? estado.esperando : estado.esperando.slice(1);
 
   return (

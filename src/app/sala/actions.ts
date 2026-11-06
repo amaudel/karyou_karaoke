@@ -23,6 +23,8 @@ import { cerrarTurnoConPuntuacion, aplaudir, notaAnteriorRevancha } from '@/db/p
 import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
 import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
+import { barDeCuenta, asignarSalaACuenta, salaTieneCuenta, cuentaEsPropietariaDeSala } from '@/db/bar-accounts.mjs';
+import { usuarioBar } from '@/lib/supabase/server';
 import { omitirCelebracion, confirmarPresentacionCelebracion } from '@/domain/celebracion.mjs';
 import {
   cookiePropietarioSala,
@@ -41,23 +43,38 @@ async function tokenDe(code: string): Promise<string | undefined> {
   return jar.get(nombreCookie(code))?.value;
 }
 
+/** Las salas de un bar con cuenta requieren la identidad verificada del dueño. */
+async function exigirControlSiCuenta(code: string) {
+  const sesion = await obtenerSesion(code);
+  if (!sesion || !(await salaTieneCuenta(sesion.id))) return;
+  const user = await usuarioBar();
+  if (!user || !(await cuentaEsPropietariaDeSala(user.id, sesion.id))) {
+    throw new Error('No tienes permiso para administrar esta sala.');
+  }
+}
+
 /* ------------------------------------------------------------------ crear */
 
 export async function crearSesionAction(formData: FormData) {
   const nombre = String(formData.get('nombre') ?? '').trim();
   const modoRaw = String(formData.get('modo') ?? 'casa');
   const modo = modoRaw === 'bar' ? 'bar' : 'casa';
+  const user = modo === 'bar' ? await usuarioBar() : null;
+  if (user && !(await barDeCuenta(user.id))) redirect('/bar');
   const porDefecto = modo === 'bar' ? 'Karaoke Bar' : 'Karaoke en casa';
   const { code, id } = await crearSesion(nombre || porDefecto, modo);
-  // El navegador creador recibe un token httpOnly exclusivo de esta sala.
-  // No se asume propiedad por conocer el código público o entrar como cantante.
-  const tokenPropietario = await registrarPropietarioSala(id);
-  const jarPropietario = await cookies();
-  jarPropietario.set(cookiePropietarioSala(code), tokenPropietario, {
-    httpOnly: true, secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict', path: '/', maxAge: 60 * 60 * 24 * 180,
-  });
-  if (modo === 'bar') {
+  // Las salas con cuenta se autorizan solo por identidad, no por una cookie heredada.
+  if (!user) {
+    const tokenPropietario = await registrarPropietarioSala(id);
+    const jarPropietario = await cookies();
+    jarPropietario.set(cookiePropietarioSala(code), tokenPropietario, {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict', path: '/', maxAge: 60 * 60 * 24 * 180,
+    });
+  }
+  if (modo === 'bar' && user) {
+    await asignarSalaACuenta(user.id, id);
+  } else if (modo === 'bar') {
     const sesion = await obtenerSesion(code);
     if (!sesion) throw new Error('No se pudo vincular el bar a la sala.');
     const jar = await cookies();
@@ -92,6 +109,7 @@ export async function eliminarSesionAction(
     code,
     jar.get(cookiePropietarioSala(code))?.value,
     jar.get('karyou_bar_owner')?.value,
+    (await usuarioBar())?.id,
   );
   if (!resultado.ok) {
     return {
@@ -225,6 +243,7 @@ export async function cancelarAction(formData: FormData) {
 
 export async function iniciarTurnoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirControlSiCuenta(code);
   const res = await iniciarTurno(code, Number(formData.get('queueItemId')));
   if (!res.ok) {
     redirect(`/sala/${code}/control?error=${encodeURIComponent(res.error)}`);
@@ -266,6 +285,13 @@ export async function saltarTurnoInactivoMovilAction(formData: FormData) {
 export async function terminarTurnoMovilAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
   const queueItemId = Number(formData.get('queueItemId'));
+  const sesion = await obtenerSesion(code);
+  if (sesion && await salaTieneCuenta(sesion.id)) {
+    const token = await tokenDe(code);
+    const { getDb } = await import('@/db/client.mjs');
+    const propio = token && await (await getDb()).prepare(`select 1 from queue_items q join participants p on p.id=q.participant_id where q.id=? and q.session_id=? and p.token=?`).get(queueItemId, sesion.id, token);
+    if (!propio) throw new Error('No tienes permiso para finalizar este turno.');
+  }
   await cerrarTurnoConPuntuacion(code, queueItemId, { terminoNatural: false });
 
   revalidatePath(`/sala/${code}`);
@@ -275,6 +301,7 @@ export async function terminarTurnoMovilAction(formData: FormData) {
 
 export async function cerrarTurnoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirControlSiCuenta(code);
   const queueItemId = Number(formData.get('queueItemId'));
 
   // Un cierre manual —el operador salta o corta— también produce nota. Si no,
@@ -303,6 +330,7 @@ export async function aplaudirAction(formData: FormData) {
 
 export async function moverAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirControlSiCuenta(code);
   const direccion = Number(formData.get('direccion')) === -1 ? -1 : 1;
   await moverEnCola(code, Number(formData.get('queueItemId')), direccion);
 
@@ -313,6 +341,7 @@ export async function moverAction(formData: FormData) {
 
 export async function cambiarModoSesionAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirControlSiCuenta(code);
   const modo = String(formData.get('modo') ?? 'casa') === 'bar' ? 'bar' : 'casa';
   await cambiarModoSesion(code, modo);
 
@@ -324,6 +353,7 @@ export async function cambiarModoSesionAction(formData: FormData) {
 
 export async function cambiarEspectaculoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirControlSiCuenta(code);
   const nivel = String(formData.get('espectaculo') ?? '');
   await cambiarEspectaculoSesion(code, nivel);
   revalidatePath(`/sala/${code}/control`);
@@ -333,6 +363,7 @@ export async function cambiarEspectaculoAction(formData: FormData) {
 
 export async function terminarSesionAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirControlSiCuenta(code);
   await cambiarEstadoSesion(code, 'finished');
 
   revalidatePath('/');
@@ -349,6 +380,7 @@ export async function terminarSesionAction(formData: FormData) {
 /** Marca el turno como sonando. La llama el reproductor al pulsar Cantar. */
 export async function empezarTurnoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirControlSiCuenta(limpio);
   const res = await iniciarTurno(limpio, queueItemId);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -368,6 +400,7 @@ export async function terminarTurnoAction(
   },
 ) {
   const limpio = normalizarCodigo(code);
+  await exigirControlSiCuenta(limpio);
   const cierre = await cerrarTurnoConPuntuacion(limpio, queueItemId, telemetria);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -392,6 +425,7 @@ export async function terminarTurnoAction(
 /** Retira de la cola un turno cuya pista no se pudo reproducir, sin puntuar al cantante. */
 export async function descartarTurnoRotoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirControlSiCuenta(limpio);
   await cerrarTurno(limpio, queueItemId, 'skipped');
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -402,6 +436,7 @@ export async function descartarTurnoRotoAction(code: string, queueItemId: number
  */
 export async function confirmarInicioCelebracionAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirControlSiCuenta(limpio);
   const sesion = await obtenerSesion(limpio);
   if (!sesion) return 0;
   const restante = await confirmarPresentacionCelebracion(sesion.id, queueItemId);
@@ -419,7 +454,7 @@ export async function omitirCelebracionBarAction(formData: FormData) {
   const sesion = await obtenerSesion(code);
   if (!sesion || sesion.modo !== 'bar') throw new Error('Disponible solamente en Modo Bar.');
   const token = (await cookies()).get('karyou_bar_owner')?.value;
-  const propietario = await propietarioDeSala(sesion.id, token);
+  const propietario = await propietarioDeSala(sesion.id, token, (await usuarioBar())?.id);
   if (!propietario) throw new Error('No autorizado a omitir la celebración.');
   await omitirCelebracion(sesion.id);
   revalidatePath(`/sala/${code}`);

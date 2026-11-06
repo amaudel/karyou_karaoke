@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { usuarioBar } from '@/lib/supabase/server';
+import { salaTieneCuenta } from '@/db/bar-accounts.mjs';
 import { cookies } from 'next/headers';
 import { getStats } from '@/db/queries.mjs';
 import { listarSesiones } from '@/db/sessions.mjs';
@@ -39,14 +41,17 @@ export default async function Home() {
   const stats = await getStats();
   const sesiones = await listarSesiones();
   const jar = await cookies();
+  const user = await usuarioBar();
   const tokenBar = jar.get('karyou_bar_owner')?.value;
   // No mostrar una acción destructiva a los invitados que solo conocen el QR.
-  const salas = await Promise.all(sesiones.map(async (s) => ({
+  const salasConPermisos = await Promise.all(sesiones.map(async (s) => ({
     ...s,
+    tieneCuenta: await salaTieneCuenta(s.id),
     puedeEliminar: await esPropietarioSala(
-      s.id, jar.get(cookiePropietarioSala(s.code))?.value, tokenBar,
+      s.id, jar.get(cookiePropietarioSala(s.code))?.value, tokenBar, user?.id,
     ),
   })));
+  const salas = salasConPermisos.filter(s => !s.tieneCuenta || s.puedeEliminar);
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)] w-full overflow-hidden rounded-3xl border border-purple-900/40 bg-gradient-to-b from-[#0c071e] via-[#110a28] to-[#070312] p-6 sm:p-10 text-white shadow-2xl">
@@ -55,6 +60,7 @@ export default async function Home() {
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-[500px] w-[500px] rounded-full bg-pink-500/15 blur-3xl" />
 
       <div className="relative z-10 space-y-12">
+        <Link href="/bar" className="inline-block rounded-xl border border-purple-400/40 px-4 py-2 font-bold text-purple-100">🍻 Cuenta para bares</Link>
         <section className="space-y-3">
           <h1 className="text-4xl font-black tracking-wide uppercase bg-gradient-to-r from-purple-300 via-pink-300 to-amber-300 bg-clip-text text-transparent">
             Karaoke en Casa o en Bar

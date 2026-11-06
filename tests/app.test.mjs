@@ -1847,3 +1847,25 @@ test('bar antiguo se puede borrar con cookie de su dueño sin borrar las promoci
   assert.ok(local, 'el establecimiento se conserva para futuras salas');
   assert.equal(await obtenerSesion(otro.code) !== null, true);
 });
+
+test('cuentas de bares aíslan salas y promociones entre establecimientos', async () => {
+  const { crearBarParaCuenta, barDeCuenta, asignarSalaACuenta, cuentaEsPropietariaDeSala } = await import('../src/db/bar-accounts.mjs');
+  const { propietarioDeSala, crearCampania, listarCampanias } = await import('../src/db/bar-ads.mjs');
+  const { eliminarSalaAutorizada } = await import('../src/db/session-owners.mjs');
+  const a = await crearBarParaCuenta('test-account-a', 'Bar A');
+  const b = await crearBarParaCuenta('test-account-b', 'Bar B');
+  assert.notEqual(a, b);
+  assert.equal((await barDeCuenta('test-account-a')).id, a);
+  assert.equal(await crearBarParaCuenta('test-account-a', 'Otro nombre'), a);
+  const sala = await crearSesion('Sala del Bar A', 'bar');
+  await asignarSalaACuenta('test-account-a', sala.id);
+  assert.equal(await cuentaEsPropietariaDeSala('test-account-a', sala.id), true);
+  assert.equal(await cuentaEsPropietariaDeSala('test-account-b', sala.id), false);
+  assert.equal((await propietarioDeSala(sala.id, null, 'test-account-a')).id, a);
+  assert.equal(await propietarioDeSala(sala.id, null, 'test-account-b'), null);
+  await crearCampania(a, { title: 'Promo A', placement: 'entre' }, { url: 'https://example.com/a.png', pathname: 'a.png', contentType: 'image/png' });
+  assert.equal((await listarCampanias(a)).length, 1);
+  assert.equal((await listarCampanias(b)).length, 0);
+  assert.equal((await eliminarSalaAutorizada(sala.code, null, null, 'test-account-b')).ok, false);
+  assert.equal((await eliminarSalaAutorizada(sala.code, null, null, 'test-account-a')).ok, true);
+});

@@ -46,7 +46,11 @@ export async function registrarPropietarioSala(sessionId) {
 }
 
 /** Reconoce salas nuevas y, por compatibilidad, salas Bar del mismo establecimiento. */
-export async function esPropietarioSala(sessionId, tokenSala, tokenBar) {
+export async function esPropietarioSala(sessionId, tokenSala, tokenBar, userId) {
+  if (userId) {
+    const account = await (await getDb()).prepare('select 1 from bar_accounts a join bar_rooms r on r.venue_id=a.venue_id where a.auth_user_id=? and r.session_id=?').get(userId, Number(sessionId));
+    if (account) return true;
+  }
   const hash = huellaSala(tokenSala);
   if (hash) {
     await asegurarPropietariosSala();
@@ -71,10 +75,10 @@ export async function esPropietarioSala(sessionId, tokenSala, tokenBar) {
  * Los participantes, turnos, puntuaciones y celebraciones tienen FK CASCADE.
  * Se conservan las campañas y el establecimiento del Bar, que son compartidos.
  */
-export async function eliminarSalaAutorizada(code, tokenSala, tokenBar) {
+export async function eliminarSalaAutorizada(code, tokenSala, tokenBar, userId) {
   const hash = huellaSala(tokenSala);
   const hashBar = huellaPropietario(tokenBar);
-  if (!hash && !hashBar) return { ok: false, error: 'NO_AUTORIZADO' };
+  if (!hash && !hashBar && !userId) return { ok: false, error: 'NO_AUTORIZADO' };
 
   if (hash) await asegurarPropietariosSala();
   if (hashBar) await asegurarBarAds();
@@ -84,8 +88,10 @@ export async function eliminarSalaAutorizada(code, tokenSala, tokenBar) {
     const sesion = await tx.prepare('select id from sessions where code = ?').get(code);
     if (!sesion) return { ok: false, error: 'SESION_NO_EXISTE' };
 
-    let autorizado = false;
-    if (hash) {
+    let autorizado = userId ? Boolean(await tx.prepare(
+      'select 1 from bar_accounts a join bar_rooms r on r.venue_id=a.venue_id where a.auth_user_id=? and r.session_id=?'
+    ).get(userId, sesion.id)) : false;
+    if (!autorizado && hash) {
       autorizado = Boolean(await tx.prepare(
         'select 1 from session_owners where session_id = ? and token_hash = ?'
       ).get(sesion.id, hash));
