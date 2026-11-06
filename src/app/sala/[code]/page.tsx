@@ -275,28 +275,29 @@ export default async function SalaPage({ params, searchParams }: Props) {
               <div className="border-b border-amber-400/20 bg-gradient-to-r from-amber-500/15 to-purple-900/30 p-3.5 sm:p-4">
                 <div className="flex min-w-0 items-start gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-sm font-black text-purple-950">
-                  1
-                </span>
+                    1
+                  </span>
                   <div className="min-w-0 flex-1">
                     <span className="inline-flex max-w-full rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-amber-200 uppercase">
-                    ⏭ Siguiente en cantar
-                  </span>
-                  <p className="mt-1.5 break-words text-base font-black leading-snug text-white sm:text-lg">
-                    {siguienteTurno.song_title || siguienteTurno.video_title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-purple-200/75">{siguienteTurno.artist}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-bold text-pink-200">
-                      🎤 {siguienteEsMio ? 'Tú' : siguienteTurno.nickname}
+                      ⏭ Siguiente en cantar
                     </span>
-                    {siguienteTurno.mesa && (
-                      <span className="rounded-md border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 font-extrabold text-amber-200">
-                        🪑 {siguienteTurno.mesa}
+                    <p className="mt-1.5 break-words text-base font-black leading-snug text-white sm:text-lg">
+                      {siguienteTurno.song_title || siguienteTurno.video_title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-purple-200/75">{siguienteTurno.artist}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-bold text-pink-200">
+                        🎤 {siguienteEsMio ? 'Tú' : siguienteTurno.nickname}
                       </span>
-                    )}
+                      {siguienteTurno.mesa && (
+                        <span className="rounded-md border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 font-extrabold text-amber-200">
+                          🪑 {siguienteTurno.mesa}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                {/* Acciones fuera de la fila del título: el mensaje de carga nunca comprime el texto. */}
+                {/* Acciones fuera de la fila del título: el estado de carga nunca comprime el texto. */}
                 {((!celebracionBloqueada && !estado.sonando &&
                   (siguienteEsMio || turnoInactivoDesbloqueado)) || siguienteEsMio) && (
                   <div data-karyou-acciones-siguiente="separadas" className="mt-3 flex min-w-0 flex-wrap items-center gap-2 border-t border-amber-400/15 pt-3 sm:pl-12">
