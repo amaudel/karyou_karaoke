@@ -14,6 +14,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { asegurarCelebraciones, celebracionPendiente } from '../domain/celebracion.mjs';
+import { ordenarColaBar } from '../domain/cola-bar.mjs';
 import { getDb, plano, planas } from './client.mjs';
 
 /** Alfabeto Crockford base32: sin I, L, O ni U, que se confunden al dictarlos. */
@@ -23,7 +24,7 @@ const LARGO_CODIGO = 6;
 /** Cuántas canciones pendientes puede acumular una persona en Modo Casa. */
 export const LIMITE_PENDIENTES = 3;
 /** Cuántas canciones pendientes puede acumular una persona en Modo Bar. */
-export const LIMITE_PENDIENTES_BAR = 2;
+export const LIMITE_PENDIENTES_BAR = 5;
 /** Segundos que se reserva el turno en exclusiva al cantante en Modo Bar antes de habilitar salto. */
 export const SEGUNDOS_DESBLOQUEO_BAR = 60;
 
@@ -382,7 +383,7 @@ export async function listarParticipantes(sessionId) {
 
 /**
  * Pide una canción. En Modo Casa va al final de la cola (FIFO); en Modo Bar se
- * intercala por rondas (Round-Robin) para que ninguna mesa acapare dos turnos
+ * organiza tandas de hasta dos canciones por mesa sin bloquear a otras
  * seguidos mientras otra espera su primera canción.
  *
  * @param {string} codigo
@@ -413,41 +414,39 @@ export async function pedirCancion(codigo, token, videoId) {
   if (!pista) return { ok: false, error: 'PISTA_NO_DISPONIBLE' };
 
   const limite = limitePendientesDe(quien.sesion.modo);
-  const pendientes = (
-    await db
-      .prepare(
-        `select count(*) as n from queue_items
-          where session_id = ? and participant_id = ? and status in ('waiting', 'singing')`,
-      )
-      .get(quien.sesion.id, quien.participante.id)
-  ).n;
-  if (pendientes >= limite) return { ok: false, error: 'LIMITE_ALCANZADO' };
-
-  const ultima = (
-    await db
-      .prepare(
-        `select coalesce(max(position), 0) as m from queue_items
-          where session_id = ? and status in ('waiting', 'singing')`,
-      )
-      .get(quien.sesion.id)
-  ).m;
 
   try {
-    const res = await db
-      .prepare(
+    // Reservar el cupo e insertar en una transacción evita que dos peticiones
+    // simultáneas del mismo móvil sobrepasen el límite de cinco.
+    return await db.transaction(async (tx) => {
+      const pendientes = (
+        await tx.prepare(
+          `select count(*) as n from queue_items
+             where session_id = ? and participant_id = ?
+               and (status = 'waiting' or (? = 'casa' and status = 'singing'))`,
+        ).get(quien.sesion.id, quien.participante.id, quien.sesion.modo)
+      ).n;
+      if (pendientes >= limite) return { ok: false, error: 'LIMITE_ALCANZADO' };
+
+      const ultima = (
+        await tx.prepare(
+          `select coalesce(max(position), 0) as m from queue_items
+             where session_id = ? and status in ('waiting', 'singing')`,
+        ).get(quien.sesion.id)
+      ).m;
+
+      const res = await tx.prepare(
         `insert into queue_items (session_id, participant_id, video_id, position)
          values (?, ?, ?, ?)`,
-      )
-      .run(quien.sesion.id, quien.participante.id, videoId, ultima + 1);
-    const queueItemId = Number(res.lastInsertRowid);
+      ).run(quien.sesion.id, quien.participante.id, videoId, ultima + 1);
 
-    if (quien.sesion.modo === 'bar') {
-      await reordenarColaBar(quien.sesion.id);
-    }
-
-    return { ok: true, queueItemId };
+      if (quien.sesion.modo === 'bar') {
+        await reordenarColaBar(quien.sesion.id, tx);
+      }
+      return { ok: true, queueItemId: Number(res.lastInsertRowid) };
+    });
   } catch (error) {
-    // El índice único parcial rechaza el duplicado; no hace falta consultarlo antes.
+    // El índice único parcial rechaza duplicados del mismo cantante.
     if (String(error.message).includes('UNIQUE')) return { ok: false, error: 'YA_PEDIDA' };
     throw error;
   }
@@ -493,96 +492,58 @@ async function compactarCola(sessionId) {
 }
 
 /**
- * Modo Bar: rotación equitativa de mesas y, dentro de cada mesa, de cantantes.
- * Mantiene fijo el turno que ya está en la TV. Cada mesa obtiene una canción
- * por ronda global; en rondas posteriores se alternan sus participantes.
- * El orden inicial es el de solicitud (id), sin adelantar canciones del mismo
- * participante sobre la primera de otro de su mesa.
- * @param {number} sessionId
+ * Modo Bar: dos canciones por mesa en cada ronda. Respeta el turno
+ * presentado en TV y toma en cuenta los últimos turnos finalizados para
+ * no reiniciar una tanda cuando entra una nueva petición.
+ * Acepta una transacción ya abierta durante la inserción atómica.
  */
-async function reordenarColaBar(sessionId) {
-  const db = await getDb();
+async function reordenarColaBar(sessionId, tx = null) {
+  const db = tx ?? await getDb();
   const filas = await db.prepare(
     `select q.id, q.participant_id, p.table_name, q.status, q.position
        from queue_items q join participants p on p.id = q.participant_id
       where q.session_id = ? and q.status in ('waiting', 'singing')
-      order by case when q.status = 'singing' then 0 else 1 end, q.position asc, q.id asc`,
+      order by case when q.status = 'singing' then 0 else 1 end,
+               q.position asc, q.id asc`,
   ).all(sessionId);
-  if (filas.length <= 2) return;
+  if (filas.length <= 1) return;
 
-  const claveMesa = (f) =>
-    (f.table_name && f.table_name.trim().toLowerCase()) || `p_${f.participant_id}`;
-  const fijada = filas[0];
-  const mesas = new Map();
-  // La canción visible queda fija, pero cuenta como la primera de su mesa y
-  // de su cantante para determinar quién sigue en esa misma mesa.
-  for (const fila of [...filas].sort((a, b) => a.id - b.id)) {
-    const clave = claveMesa(fila);
-    if (!mesas.has(clave)) mesas.set(clave, new Map());
-    const cantantes = mesas.get(clave);
-    if (!cantantes.has(fila.participant_id)) cantantes.set(fila.participant_id, []);
-    cantantes.get(fila.participant_id).push(fila);
+  // Los turnos cerrados ya no están en la cola viva, pero cuentan en la tanda.
+  // Se incluyen los saltados y se excluyen las cancelaciones voluntarias.
+  const ultimos = await db.prepare(
+    `select q.participant_id, p.table_name
+       from queue_items q join participants p on p.id = q.participant_id
+      where q.session_id = ? and q.status in ('done', 'skipped')
+      order by q.finished_at desc, q.id desc limit 2`,
+  ).all(sessionId);
+  const ids = ordenarColaBar(filas, ultimos);
+  if (tx) {
+    await aplicarOrdenColaDentroTx(tx, ids);
+  } else {
+    await aplicarOrdenCola(db, ids);
   }
-  const porMesa = new Map();
-  for (const [clave, cantantes] of mesas) {
-    const participantes = [...cantantes.entries()].sort((a, b) => a[1][0].id - b[1][0].id);
-    if (clave === claveMesa(fijada)) {
-      // El cantante de la canción fijada ya tuvo su oportunidad en esta vuelta.
-      const indice = participantes.findIndex(([id]) => id === fijada.participant_id);
-      if (indice >= 0) {
-        const [cantanteFijado] = participantes.splice(indice, 1);
-        cantanteFijado[1] = cantanteFijado[1].filter((f) => f.id !== fijada.id);
-        participantes.push(cantanteFijado);
-      }
-    }
-    const orden = [];
-    let pendientes = true;
-    while (pendientes) {
-      pendientes = false;
-      for (const [, canciones] of participantes) {
-        if (canciones.length) {
-          orden.push(canciones.shift());
-          pendientes = true;
-        }
-      }
-    }
-    porMesa.set(clave, orden.filter((f) => f.id !== fijada.id));
+}
+
+/** Aplica un orden completo dentro de la transacción de la sesión. */
+async function aplicarOrdenColaDentroTx(tx, ids) {
+  for (const [indice, id] of ids.entries()) {
+    await tx.prepare('update queue_items set position = ? where id = ?')
+      .run(-(indice + 1), id);
   }
-  // La mesa que ya está en pantalla participa al final de la primera vuelta.
-  const mesaFijada = claveMesa(fijada);
-  const claves = [...porMesa.keys()].filter((k) => k !== mesaFijada);
-  claves.push(mesaFijada);
-  const resultado = [fijada.id];
-  let quedan = true;
-  while (quedan) {
-    quedan = false;
-    for (const clave of claves) {
-      const fila = porMesa.get(clave)?.shift();
-      if (fila) { resultado.push(fila.id); quedan = true; }
-    }
+  for (const [indice, id] of ids.entries()) {
+    await tx.prepare('update queue_items set position = ? where id = ?')
+      .run(indice + 1, id);
   }
-  await aplicarOrdenCola(db, resultado);
 }
 
 /**
- * Aplica un nuevo orden de posiciones 1..N pasando por posiciones negativas
- * temporales para no chocar con el índice único `uq_queue_posicion`.
- * @param {any} db
- * @param {number[]} ids
+ * Reordena la cola pasando por posiciones negativas para no chocar con
+ * el índice único parcial de (sesión, posición).
  */
 async function aplicarOrdenCola(db, ids) {
   if (ids.length === 0) return;
   await db.transaction(async (tx) => {
-    for (const [indice, id] of ids.entries()) {
-      await tx
-        .prepare('update queue_items set position = ? where id = ?')
-        .run(-(indice + 1), id);
-    }
-    for (const [indice, id] of ids.entries()) {
-      await tx
-        .prepare('update queue_items set position = ? where id = ?')
-        .run(indice + 1, id);
-    }
+    await aplicarOrdenColaDentroTx(tx, ids);
   });
 }
 
