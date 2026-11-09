@@ -1,3 +1,4 @@
+import { usuarioBar } from '@/lib/auth/server';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -23,7 +24,7 @@ export default async function PublicidadBar({params,searchParams}:Props){
   if(!sesion) notFound();
   if(sesion.modo!=='bar') notFound();
   const token=(await cookies()).get('karyou_bar_owner')?.value;
-  const bar=await propietarioDeSala(sesion.id,token);
+  const bar=await propietarioDeSala(sesion.id,token,(await usuarioBar())?.id);
   const {error,ok}=await searchParams;
   return (
     <main className="mx-auto max-w-6xl space-y-6 rounded-3xl border border-fuchsia-400/20 bg-[#0f061b] p-4 text-white sm:p-7">
@@ -54,7 +55,7 @@ export default async function PublicidadBar({params,searchParams}:Props){
             campanias={await listarCampanias(bar.id)}
             storageOk={blobConfigurado()}/>
           <p className="rounded-xl border border-purple-500/20 p-4 text-xs text-purple-300">
-            Privacidad: la administración se vincula a una cookie segura de este navegador. No compartas acceso de administrador; si pierdes la cookie, necesitarás recuperar el establecimiento mediante soporte.
+            La administración está protegida por la cuenta del bar o, para salas antiguas, por la credencial de este navegador.
           </p>
         </>
       )}

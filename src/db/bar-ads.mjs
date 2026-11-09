@@ -46,7 +46,14 @@ export async function registrarNuevaSalaBar(sessionId, nombre, tokenAnterior) {
   return token;
 }
 
-export async function propietarioDeSala(sessionId, token) {
+export async function propietarioDeSala(sessionId, token, userId) {
+  if (userId) {
+    await asegurarBarAds();
+    const bar = await (await getDb()).prepare(`select v.id, v.name, v.logo_url from bar_venues v
+      join bar_rooms r on r.venue_id=v.id join bar_accounts a on a.venue_id=v.id
+      where r.session_id=? and a.auth_user_id=?`).get(Number(sessionId), userId);
+    if (bar) return bar;
+  }
   const huella = huellaPropietario(token);
   if (!huella) return null;
   await asegurarBarAds();
