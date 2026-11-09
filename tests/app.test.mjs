@@ -10,10 +10,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { crearBaseDePrueba, borrarBaseDePrueba } from './fixture.mjs';
+import { crearBaseDePrueba, borrarBaseDePrueba, configurarMotor } from './fixture.mjs';
 
 const { dbPath, dir } = crearBaseDePrueba();
-process.env.KARAOKE_DB = dbPath;
+const motor = configurarMotor(dbPath);
+console.log(`# motor de base de datos: ${motor}`);
 
 // Import dinámico: las importaciones estáticas se elevan y se ejecutarían antes
 // de que KARAOKE_DB esté definida.

@@ -13,6 +13,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Sin banderas corre con `node:sqlite` (desarrollo). `--libsql` corre la misma batería
+// con el cliente de producción (`@libsql/client`, el de Turso) sobre un archivo local:
+// sirve para cazar diferencias entre motores antes de llegar a producción. `pnpm test`
+// ejecuta las dos vueltas.
+if (process.argv.includes('--libsql')) process.env.KARAOKE_TEST_ENGINE = 'libsql';
+
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
 const files = fs

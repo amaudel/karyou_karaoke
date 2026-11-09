@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { deriveFields } from '../src/lib/normalize.mjs';
 import { clasificarGenero } from '../src/domain/genero.mjs';
@@ -148,6 +149,37 @@ export function crearBaseDePrueba() {
 
   db.close();
   return { dbPath, dir };
+}
+
+/**
+ * Elige el motor con el que `src/db/client.mjs` abrirá el fixture.
+ *
+ *   - `sqlite` (por defecto): `node:sqlite`, el camino de desarrollo.
+ *   - `libsql`: el mismo archivo, pero abierto con `@libsql/client` en modo `file:`.
+ *     Es el camino de producción (Turso) sin red: ejercita `prepareTurso`, las filas
+ *     de libsql y `transaction('write')`. No cubre latencia ni rarezas de la nube.
+ *
+ * En modo `sqlite` se borran las variables TURSO_*: si el entorno las tuviera, las
+ * pruebas escribirían contra la base de producción.
+ *
+ * @param {string} dbPath
+ * @returns {'sqlite' | 'libsql'}
+ */
+export function configurarMotor(dbPath) {
+  const motor = process.env.KARAOKE_TEST_ENGINE ?? 'sqlite';
+  if (motor !== 'sqlite' && motor !== 'libsql') {
+    throw new Error(`KARAOKE_TEST_ENGINE desconocido: "${motor}" (usa sqlite o libsql)`);
+  }
+
+  process.env.KARAOKE_DB = dbPath;
+  if (motor === 'libsql') {
+    process.env.TURSO_DATABASE_URL = pathToFileURL(dbPath).href;
+    process.env.TURSO_AUTH_TOKEN = 'prueba-local';
+  } else {
+    delete process.env.TURSO_DATABASE_URL;
+    delete process.env.TURSO_AUTH_TOKEN;
+  }
+  return motor;
 }
 
 /**

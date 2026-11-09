@@ -53,7 +53,8 @@ firewall: hay que permitirlo, o los móviles no podrán conectarse.
 | `pnpm dev` | Servidor de desarrollo en `0.0.0.0:3000` |
 | `pnpm build` | Compila para producción |
 | `pnpm start` | Sirve la versión compilada |
-| `pnpm test` | Pruebas de normalización, búsqueda y catálogo |
+| `pnpm test` | Toda la batería, dos veces: con `node:sqlite` (desarrollo) y con `@libsql/client` (el cliente de Turso) sobre un archivo local |
+| `pnpm test:sqlite` / `pnpm test:libsql` | Solo una de las dos vueltas |
 | `pnpm typecheck` | Verifica los tipos |
 | `pnpm db:setup` | Crea la base y aplica migraciones + semilla (idempotente) |
 | `pnpm db:reset` | Borra la base y la reconstruye desde cero |

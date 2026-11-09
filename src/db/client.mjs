@@ -36,6 +36,67 @@ let dbTurso = null;
  */
 let colaTxLocal = Promise.resolve();
 
+/** Cola de escrituras de `dbTurso` cuando la URL es un archivo local. */
+let colaEscrituraTurso = Promise.resolve();
+
+/** @param {string | undefined} url */
+function esArchivoLocal(url) {
+  return String(url ?? '').startsWith('file:');
+}
+
+/** @param {string} sql */
+function escribe(sql) {
+  return /^\s*(insert|update|delete|replace|create|drop|alter)\b/i.test(sql);
+}
+
+/**
+ * @template T
+ * @param {() => Promise<T>} tarea
+ * @returns {Promise<T>}
+ */
+function encolarEscritura(tarea) {
+  const siguiente = colaEscrituraTurso.then(tarea, tarea);
+  colaEscrituraTurso = siguiente.then(
+    () => undefined,
+    () => undefined,
+  );
+  return siguiente;
+}
+
+/**
+ * Transacción real sobre `@libsql/client`.
+ * @template T
+ * @param {import('@libsql/client').Client} cliente
+ * @param {(tx: any) => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+async function transaccionTurso(cliente, fn) {
+  // OJO: `@libsql/client` NO acepta la forma `transaction(fn)`. Su firma es
+  // `transaction(mode?): Promise<Transaction>`, así que pasarle el callback lo
+  // interpreta como el MODO y el callback nunca se ejecuta: las escrituras se
+  // pierden en silencio. Hay que abrir la transacción, ejecutar y confirmar.
+  const tx = await cliente.transaction('write');
+  try {
+    const prepararTx = prepareTurso((sql, args) => tx.execute({ sql, args: args ?? [] }));
+    const resultado = await fn({ prepare: prepararTx });
+    await tx.commit();
+    return resultado;
+  } catch (error) {
+    try {
+      await tx.rollback();
+    } catch {
+      // Si ya estaba cerrada, no hay nada que revertir.
+    }
+    throw error;
+  } finally {
+    try {
+      tx.close();
+    } catch {
+      // Ya cerrada por commit o rollback.
+    }
+  }
+}
+
 export function rutaBase() {
   return process.env.KARAOKE_DB ?? path.join(process.cwd(), 'data', 'karaoke.db');
 }
@@ -106,35 +167,25 @@ export async function getDb() {
       });
     }
 
-    const prepare = prepareTurso((sql, args) => dbTurso.execute({ sql, args: args ?? [] }));
+    // En modo `file:` (pruebas) cada transacción abre otra conexión y SQLite no espera
+    // a la que tiene el candado: una escritura suelta que coincide con una transacción
+    // falla con SQLITE_BUSY y deja el cliente inservible. Con Turso remoto el servidor
+    // ya serializa las escrituras, así que ahí no se encola nada (una cola aquí
+    // frenaría ráfagas como los aplausos).
+    const serializar = esArchivoLocal(process.env.TURSO_DATABASE_URL);
+
+    const prepare = prepareTurso((sql, args) => {
+      const ejecutar = () => dbTurso.execute({ sql, args: args ?? [] });
+      return serializar && escribe(sql) ? encolarEscritura(ejecutar) : ejecutar();
+    });
 
     return {
       prepare,
       async transaction(fn) {
-        // OJO: `@libsql/client` NO acepta la forma `transaction(fn)`. Su firma es
-        // `transaction(mode?): Promise<Transaction>`, así que pasarle el callback lo
-        // interpreta como el MODO y el callback nunca se ejecuta: las escrituras se
-        // pierden en silencio. Hay que abrir la transacción, ejecutar y confirmar.
-        const tx = await dbTurso.transaction('write');
-        try {
-          const prepararTx = prepareTurso((sql, args) => tx.execute({ sql, args: args ?? [] }));
-          const resultado = await fn({ prepare: prepararTx });
-          await tx.commit();
-          return resultado;
-        } catch (error) {
-          try {
-            await tx.rollback();
-          } catch {
-            // Si ya estaba cerrada, no hay nada que revertir.
-          }
-          throw error;
-        } finally {
-          try {
-            tx.close();
-          } catch {
-            // Ya cerrada por commit o rollback.
-          }
-        }
+        const cliente = dbTurso;
+        return serializar
+          ? encolarEscritura(() => transaccionTurso(cliente, fn))
+          : transaccionTurso(cliente, fn);
       },
       async close() {
         dbTurso?.close();
