@@ -1,10 +1,26 @@
-# Karaoke
+# Karyou Karaoke
 
-Aplicación web de karaoke para casa. YouTube reproduce el video; la aplicación aporta la
-búsqueda, la cola de turnos, la pantalla de TV, la puntuación y el ranking.
+Aplicación web de karaoke social. YouTube reproduce el video; Karyou aporta la búsqueda,
+la cola de turnos por QR, la pantalla de TV, la puntuación y el ranking.
 
-El plan completo está en **[docs/PLAN.md](docs/PLAN.md)**. Los documentos de
-`docs/archive/` describen un producto comercial anterior y ya no aplican.
+## Rumbo del proyecto
+
+**Karyou pasa a ser un negocio que genere ingresos**, ya no un proyecto solo para casa.
+Las funciones de Modo Bar (ranking por mesas, publicidad del local) son la base de ese giro.
+
+Decisiones que todavía están abiertas:
+
+- **Cliente principal:** bares y locales, hogares, animadores de eventos, o una mezcla.
+- **Cómo se cobra:** suscripción mensual, pago único, comisión o publicidad.
+- **Riesgos que hay que resolver antes de cobrar:** las condiciones de uso de la API de
+  YouTube para un producto comercial, y los derechos de comunicación pública de la música
+  en locales (en Ecuador, SAYCE).
+- **Instalación:** hoy corre en una laptop dentro de la red local; un negocio probablemente
+  necesite una versión en la nube.
+
+`docs/PLAN.md` todavía describe el enfoque de uso personal y se va a actualizar con estas
+decisiones. Los documentos de `docs/archive/` (licencias, pagos, administración) vuelven a ser
+material de referencia útil.
 
 ---
 
@@ -119,7 +135,8 @@ Para ver las pantallas con datos sin montar nada: `pnpm demo:sesion`.
 
 ### Lo que aún no hay
 
-- **Favoritos** (guardar pistas preferidas para pedirlas en un toque).
+- **Cobro y cuentas de clientes** (licencias, pagos, acceso por local).
+- **Versión en la nube** para locales que no quieran depender de una laptop.
 - **Micrófono** (descartado en el MVP tras medirlo con `pnpm calibrar`; el motor ya lo soporta si se activa en el futuro).
 
 ### Una cosa que conviene saber antes de una fiesta
