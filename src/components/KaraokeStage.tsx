@@ -383,7 +383,7 @@ export default function KaraokeStage({
             // embeddable = true. Se registra para que dejen de ofrecerse.
             if (code && (evento.data === 101 || evento.data === 150)) {
               reportarPistaBloqueada(code, idActual, evento.data)
-                .then(() => setOcultada(true))
+                .then((ocultada) => { if (ocultada) setOcultada(true); })
                 .catch(() => {
                   // Que falle el registro no debe afectar a lo que ve el usuario.
                 });
