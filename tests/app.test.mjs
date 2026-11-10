@@ -1810,3 +1810,15 @@ test('bar antiguo se puede borrar con cookie de su dueño sin borrar las promoci
   assert.ok(local, 'el establecimiento se conserva para futuras salas');
   assert.equal(await obtenerSesion(otro.code) !== null, true);
 });
+
+
+test('estadoSesion reutiliza la sesión precargada sin alterar datos de cola ni participantes', async () => {
+  const { code } = await crearSesion('Consulta reutilizada');
+  const participante = await unirseSesion(code, 'Participante');
+  assert.equal(participante.ok, true);
+  const sesion = await obtenerSesion(code);
+  const normal = await estadoSesion(code);
+  const optimizado = await estadoSesion(code, sesion);
+  assert.deepEqual(optimizado, normal);
+  assert.equal(optimizado.sesion.id, sesion.id);
+});
