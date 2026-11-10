@@ -112,4 +112,5 @@ export async function reportarPistaBloqueada(code: string, videoId: string, codi
     revalidatePath('/catalogo');
     revalidatePath('/');
   }
+  return resultado.ocultada === true;
 }
