@@ -25,6 +25,7 @@ import {
 import { cerrarTurnoConPuntuacion, aplaudir, notaAnteriorRevancha } from '@/db/puntuaciones.mjs';
 import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
+import { consumirLimite } from '@/db/rate-limit.mjs';
 import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
 import { omitirCelebracion, confirmarPresentacionCelebracion } from '@/domain/celebracion.mjs';
 import {
@@ -208,6 +209,10 @@ export async function pedirPorUrlAction(formData: FormData) {
     redirect(`/sala/${code}${anexarError(volver, 'NO_IDENTIFICADO')}`);
   }
 
+  // Hasta 5 importaciones por participante cada 10 minutos (en todas las instancias).
+  if (!(await consumirLimite(`yt-import:${participante.sesion.id}:${participante.participante.id}`, 5, 600))) {
+    redirect(`/sala/${code}${anexarError(volver, 'LIMITE_SOLICITUDES')}`);
+  }
   const importada = await importarPistaPorUrl(url);
   if (!importada.ok) {
     redirect(`/sala/${code}${anexarError(volver, importada.error)}`);
