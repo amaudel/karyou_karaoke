@@ -2,25 +2,64 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { intervaloSondeo, debeSondear } from '@/domain/polling.mjs';
 
 /**
- * Vuelve a pedir los datos del servidor cada pocos segundos.
- *
- * Se eligió sondeo en lugar de un canal en tiempo real a propósito. Para una fiesta
- * con cinco móviles son unas pocas peticiones por segundo: nada. A cambio no hay
- * canales, ni suscripciones, ni lógica de reconexión, y el servidor sigue siendo la
- * única fuente de verdad. Si algún día se nota lento, se cambia solo esta pieza: ni
- * la base ni las consultas se tocan.
- *
- * `router.refresh()` vuelve a renderizar los componentes de servidor SIN desmontar
- * los de cliente, así que el reproductor de YouTube no se reinicia en cada vuelta.
+ * Sondeo adaptativo sin cambiar la fuente de verdad ni desmontar el reproductor.
+ * - Pausa el sondeo de pestañas ocultas y dispositivos sin conexión.
+ * - Desfase de hasta 20 % para evitar picos simultáneos entre salas.
+ * - Actualiza al regresar a primer plano o recuperar la conexión.
+ * - La TV mantiene 2 s; los participantes usan 5 s.
+ * No sustituye a un endpoint de estado ligero; es una primera reducción segura.
  */
-export default function Refresco({ cada = 2500 }: { cada?: number }) {
+export default function Refresco({ cada = 5000 }: { cada?: number }) {
   const router = useRouter();
 
   useEffect(() => {
-    const id = window.setInterval(() => router.refresh(), cada);
-    return () => window.clearInterval(id);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let activo = true;
+    let ultimaActualizacion = Date.now();
+    const permitido = () => debeSondear(document.visibilityState === 'visible', navigator.onLine);
+
+    const programar = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      if (!activo || !permitido()) return;
+      timer = setTimeout(() => {
+        if (!activo || !permitido()) return;
+        ultimaActualizacion = Date.now();
+        router.refresh();
+        programar();
+      }, intervaloSondeo(cada, Math.random()));
+    };
+
+    const reanudar = () => {
+      if (!activo) return;
+      if (!permitido()) {
+        if (timer !== undefined) clearTimeout(timer);
+        timer = undefined;
+        return;
+      }
+      // Evita doble refresco al recibir visibilitychange, focus y online juntos.
+      if (Date.now() - ultimaActualizacion >= Math.max(2000, cada)) {
+        ultimaActualizacion = Date.now();
+        router.refresh();
+      }
+      programar();
+    };
+
+    document.addEventListener('visibilitychange', reanudar);
+    window.addEventListener('focus', reanudar);
+    window.addEventListener('online', reanudar);
+    window.addEventListener('offline', programar);
+    programar();
+    return () => {
+      activo = false;
+      if (timer !== undefined) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', reanudar);
+      window.removeEventListener('focus', reanudar);
+      window.removeEventListener('online', reanudar);
+      window.removeEventListener('offline', programar);
+    };
   }, [router, cada]);
 
   return null;
