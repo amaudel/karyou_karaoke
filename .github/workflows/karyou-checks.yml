@@ -1,0 +1,29 @@
+name: KARYOU checks
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm typecheck
+      - name: Pruebas SQLite y libSQL
+        run: pnpm test
+      - name: Compilación Next.js
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
