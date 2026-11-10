@@ -1,6 +1,11 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { obtenerSesion, normalizarCodigo } from '@/db/sessions.mjs';
+import { cookiePropietarioSala, esPropietarioSala } from '@/db/session-owners.mjs';
+import { tvCookieName, verifyTvToken } from '@/db/tv-access.mjs';
+import { consumirLimite } from '@/db/rate-limit.mjs';
 import { revalidatePath } from 'next/cache';
 import {
   addToCatalog,
@@ -72,10 +77,22 @@ export async function importarUrlCatalogoAction(formData: FormData) {
  * El efecto es que la pista deja de ofrecerse y el contador de «bloqueadas» sube,
  * que es el dato que no se puede saber de antemano.
  */
-export async function reportarPistaBloqueada(videoId: string, codigo: number) {
+export async function reportarPistaBloqueada(code: string, videoId: string, codigo: number) {
   if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
-  if (!Number.isInteger(codigo)) return;
-
+  if (codigo !== 101 && codigo !== 150) return;
+  const limpio = normalizarCodigo(code);
+  const sesion = await obtenerSesion(limpio);
+  if (!sesion) return;
+  const jar = await cookies();
+  const propietario = await esPropietarioSala(
+    sesion.id,
+    jar.get(cookiePropietarioSala(limpio))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  );
+  if (!propietario && !(await verifyTvToken(sesion.id, jar.get(tvCookieName(limpio))?.value))) return;
+  // Un reporte por video y sala cada 10 minutos. La TV no puede vaciar el catálogo
+  // mediante repeticiones, y el límite persiste entre instancias serverless.
+  if (!(await consumirLimite(`yt-block:${sesion.id}:${videoId}`, 1, 600))) return;
   const resultado = await marcarPistaFallida(videoId, codigo);
   if (resultado.ocultada) {
     revalidatePath('/catalogo');
