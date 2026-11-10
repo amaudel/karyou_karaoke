@@ -141,6 +141,7 @@ const ID_REPRODUCTOR = 'yt-player';
 
 export default function KaraokeStage({
   cancion,
+  code,
   panel,
   pie,
   reemplazo,
@@ -151,6 +152,8 @@ export default function KaraokeStage({
   celebracionRestanteMs = 0,
 }: {
   cancion: CancionEnEscenario;
+  /** Sala de la TV autorizada que informa errores de YouTube. */
+  code?: string;
   /** Contenido del panel lateral. Si no se pasa, no se dibuja ninguno. */
   panel?: React.ReactNode;
   /** Estadísticas de TV fuera del reproductor, debajo de los controles. */
@@ -378,9 +381,9 @@ export default function KaraokeStage({
             // 101 y 150 significan que el titular de los derechos bloqueó la
             // inserción. Es lo único que lo detecta: la API marca estos videos como
             // embeddable = true. Se registra para que dejen de ofrecerse.
-            if (evento.data === 101 || evento.data === 150) {
-              reportarPistaBloqueada(idActual, evento.data)
-                .then(() => setOcultada(true))
+            if (code && (evento.data === 101 || evento.data === 150)) {
+              reportarPistaBloqueada(code, idActual, evento.data)
+                .then((ocultada) => { if (ocultada) setOcultada(true); })
                 .catch(() => {
                   // Que falle el registro no debe afectar a lo que ve el usuario.
                 });

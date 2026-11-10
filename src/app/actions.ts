@@ -1,6 +1,20 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { cookies, headers } from 'next/headers';
+import { obtenerSesion, normalizarCodigo } from '@/db/sessions.mjs';
+import { cookiePropietarioSala, esPropietarioSala } from '@/db/session-owners.mjs';
+import { tvCookieName, verifyTvToken } from '@/db/tv-access.mjs';
+import { consumirLimite } from '@/db/rate-limit.mjs';
+import { createHash } from 'node:crypto';
+
+async function limitarCatalogo(accion: string, maximo: number) {
+  // Cabecera controlada por Vercel; fuera de Vercel usamos un cupo compartido conservador.
+  const ip = (await headers()).get('x-vercel-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip';
+  const clave = createHash('sha256').update(ip).digest('hex').slice(0, 24);
+  return consumirLimite(`catalogo:${accion}:${clave}`, maximo, 3600);
+}
+
 import { revalidatePath } from 'next/cache';
 import {
   addToCatalog,
@@ -24,6 +38,7 @@ export async function agregarAlCatalogo(formData: FormData) {
     return;
   }
 
+  if (!(await limitarCatalogo('agregar', 30))) return;
   await addToCatalog(videoId);
   revalidatePath('/catalogo');
   revalidatePath('/');
@@ -36,6 +51,7 @@ export async function toggleFavoritoCatalogoAction(formData: FormData) {
   const videoId = String(formData.get('videoId') ?? '').trim();
   if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
 
+  if (!(await limitarCatalogo('favoritos', 60))) return;
   await toggleFavorito(videoId);
   revalidatePath('/catalogo');
   revalidatePath('/');
@@ -51,6 +67,9 @@ export async function importarUrlCatalogoAction(formData: FormData) {
     redirect('/catalogo?aviso=URL_INVALIDA');
   }
 
+  if (!(await limitarCatalogo('importar', 10))) {
+    redirect('/catalogo?aviso=LIMITE_SOLICITUDES');
+  }
   const res = await importarPistaPorUrl(url);
   if (!res.ok) {
     redirect(`/catalogo?aviso=${encodeURIComponent(res.error)}`);
@@ -72,13 +91,26 @@ export async function importarUrlCatalogoAction(formData: FormData) {
  * El efecto es que la pista deja de ofrecerse y el contador de «bloqueadas» sube,
  * que es el dato que no se puede saber de antemano.
  */
-export async function reportarPistaBloqueada(videoId: string, codigo: number) {
+export async function reportarPistaBloqueada(code: string, videoId: string, codigo: number) {
   if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
-  if (!Number.isInteger(codigo)) return;
-
+  if (codigo !== 101 && codigo !== 150) return;
+  const limpio = normalizarCodigo(code);
+  const sesion = await obtenerSesion(limpio);
+  if (!sesion) return;
+  const jar = await cookies();
+  const propietario = await esPropietarioSala(
+    sesion.id,
+    jar.get(cookiePropietarioSala(limpio))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  );
+  if (!propietario && !(await verifyTvToken(sesion.id, jar.get(tvCookieName(limpio))?.value))) return;
+  // Un reporte por video y sala cada 10 minutos. La TV no puede vaciar el catálogo
+  // mediante repeticiones, y el límite persiste entre instancias serverless.
+  if (!(await consumirLimite(`yt-block:${sesion.id}:${videoId}`, 1, 600))) return;
   const resultado = await marcarPistaFallida(videoId, codigo);
   if (resultado.ocultada) {
     revalidatePath('/catalogo');
     revalidatePath('/');
   }
+  return resultado.ocultada === true;
 }

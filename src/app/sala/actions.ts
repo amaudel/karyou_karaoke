@@ -25,6 +25,7 @@ import {
 import { cerrarTurnoConPuntuacion, aplaudir, notaAnteriorRevancha } from '@/db/puntuaciones.mjs';
 import type { ResultadoVista } from '@/app/sala/tipos';
 import { toggleFavorito, importarPistaPorUrl } from '@/db/queries.mjs';
+import { consumirLimite } from '@/db/rate-limit.mjs';
 import { registrarNuevaSalaBar, propietarioDeSala } from '@/db/bar-ads.mjs';
 import { omitirCelebracion, confirmarPresentacionCelebracion } from '@/domain/celebracion.mjs';
 import {
@@ -179,6 +180,12 @@ export async function toggleFavoritoSalaAction(formData: FormData) {
   const videoId = String(formData.get('videoId') ?? '');
   const volver = String(formData.get('volver') ?? '');
 
+  // Los favoritos son globales: no permitir cambios desde una sala sin identidad válida.
+  const token = await tokenDe(code);
+  const participante = await identificar(code, token);
+  if (!participante) {
+    redirect(`/sala/${code}${anexarError(volver, 'NO_IDENTIFICADO')}`);
+  }
   await toggleFavorito(videoId);
 
   revalidatePath(`/sala/${code}`);
@@ -195,12 +202,22 @@ export async function pedirPorUrlAction(formData: FormData) {
   const url = String(formData.get('url') ?? '').trim();
   const volver = String(formData.get('volver') ?? '');
 
+  // La importación modifica el catálogo compartido: autenticar antes de oEmbed/SQL.
+  const token = await tokenDe(code);
+  const participante = await identificar(code, token);
+  if (!participante) {
+    redirect(`/sala/${code}${anexarError(volver, 'NO_IDENTIFICADO')}`);
+  }
+
+  // Hasta 5 importaciones por participante cada 10 minutos (en todas las instancias).
+  if (!(await consumirLimite(`yt-import:${participante.sesion.id}:${participante.participante.id}`, 5, 600))) {
+    redirect(`/sala/${code}${anexarError(volver, 'LIMITE_SOLICITUDES')}`);
+  }
   const importada = await importarPistaPorUrl(url);
   if (!importada.ok) {
     redirect(`/sala/${code}${anexarError(volver, importada.error)}`);
   }
 
-  const token = await tokenDe(code);
   const res = await pedirCancion(code, token, importada.videoId);
 
   revalidatePath(`/sala/${code}`);
