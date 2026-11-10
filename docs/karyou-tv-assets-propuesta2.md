@@ -1,8 +1,8 @@
 # Karyou TV — Recursos de la propuesta 2
 
-Los seis recursos definitivos se entregan optimizados en el ZIP `KARYOU_recursos_optimizados_para_GitHub.zip`.
+**Estado: integrados en producción.** Los seis recursos WebP se importaron correctamente en el PR #13, fusionado en `main` el 22 de octubre de 2026. Los archivos ya están en el repositorio y no requieren una nueva subida.
 
-Extraer el ZIP conservando las rutas y subir los siguientes archivos binarios a esta rama del repositorio:
+## Recursos verificados
 
 - `public/images/karyou/trofeo-microfono.webp`
 - `public/images/karyou/escenario.webp`
@@ -11,12 +11,17 @@ Extraer el ZIP conservando las rutas y subir los siguientes archivos binarios a 
 - `public/images/karyou/tarjeta-vertical.webp`
 - `public/images/karyou/confeti.webp`
 
-**No fusionar a main hasta que las seis imágenes estén disponibles en la rama y se haya verificado visualmente el preview.**
+El importador temporal del PR #13 se retiró después de comprobar la transferencia. No debe volver a ejecutarse ni copiarse a producción.
 
-El componente de resultado conserva dinámicos el cantante, tema musical, notas de ritmo/energía/interpretación, puntuación final, ranking y revancha.
+La pantalla usa esos recursos en `src/components/AnimacionResultado.tsx` y `src/app/globals.css`. Conserva dinámicos el cantante, canción, las tres métricas recreativas, nota final, posición y revancha. El micrófono y el podio son imágenes decorativas con `alt=""`.
 
-El trofeo y el podio son decorativos y usan `alt=""`. El fondo, los marcos y las partículas se cargan desde CSS.
+## Control de calidad
 
-La visualización debe comprobarse en 16:9 a 1920×1080, 1366×768 y un marco de 900×506. El objetivo es evitar recortes y mantener la puntuación principal legible.
+- Transferencia de los seis archivos: **verificada en el árbol de `main`**.
+- CI final del PR #13: **aprobada** (commit `067c17b92`).
+- Vercel: despliegue de producción más reciente consultado en estado **READY**.
+- Validación visual en TV física a 1920 × 1080, 1366 × 768 y 900 × 506: **pendiente de comprobación presencial**.
+- Los fallos de CI y previews intermedios no representan el estado final del PR; se resolvieron antes de fusionar.
+- El acceso a errores agrupados en Vercel devolvió HTTP 403; **no se han verificado logs de ejecución**.
 
-Sin cambios en base de datos, reparto de turnos ni motor de puntuación.
+No se realizaron migraciones por esta integración de recursos. Los cambios posteriores a este PR se gestionan por separado.
