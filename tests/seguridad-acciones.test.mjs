@@ -40,3 +40,14 @@ test('inicio móvil rechaza identidad ausente y turnos fuera de orden', () => {
   assert.match(body, /primero\.id !== Number\(queueItemId\)/);
   assert.match(body, /return \{ ok: false, error: 'TURNO_NO_CORRESPONDE' \}/);
 });
+
+test('acciones TV exigen credencial de operador', () => {
+  for (const name of ['empezarTurnoAction', 'terminarTurnoAction',
+    'descartarTurnoRotoAction', 'confirmarInicioCelebracionAction']) {
+    assert.match(bodyOf(actions, name), /await exigirOperadorTv\(limpio\)/);
+  }
+});
+
+test('solo el propietario emite accesos de TV', () => {
+  assert.match(bodyOf(actions, 'crearAccesoTvAction'), /await exigirPropietario\(limpio\)/);
+});
