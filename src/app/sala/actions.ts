@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { issueTvToken, verifyTvToken, tvCookieName } from '@/db/tv-access.mjs';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
@@ -370,6 +371,28 @@ export async function terminarSesionAction(formData: FormData) {
   redirect(`/sala/${code}/tv`);
 }
 
+/** Acciones de reproducción: propietario o TV emparejada con la sala. */
+async function exigirOperadorTv(code: string) {
+  const sesion = await obtenerSesion(code);
+  if (!sesion) throw new Error('Sala inexistente.');
+  const jar = await cookies();
+  if (await esPropietarioSala(
+    sesion.id, jar.get(cookiePropietarioSala(code))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  )) return;
+  if (await verifyTvToken(sesion.id, jar.get(tvCookieName(code))?.value)) return;
+  throw new Error('TV no autorizada. Empareja este dispositivo desde el panel del anfitrión.');
+}
+
+/** Solo el propietario puede emitir o renovar un acceso de TV. */
+export async function crearAccesoTvAction(code: string): Promise<string> {
+  const limpio = normalizarCodigo(code);
+  await exigirPropietario(limpio);
+  const sesion = await obtenerSesion(limpio);
+  if (!sesion) throw new Error('Sala inexistente.');
+  return issueTvToken(sesion.id);
+}
+
 /* ------------------------------------------- acciones sin redirección
  *
  * Estas las llama el reproductor desde el navegador, no un formulario. No pueden
@@ -379,6 +402,7 @@ export async function terminarSesionAction(formData: FormData) {
 /** Marca el turno como sonando. La llama el reproductor al pulsar Cantar. */
 export async function empezarTurnoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   const res = await iniciarTurno(limpio, queueItemId);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -398,6 +422,7 @@ export async function terminarTurnoAction(
   },
 ) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   const cierre = await cerrarTurnoConPuntuacion(limpio, queueItemId, telemetria);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -422,6 +447,7 @@ export async function terminarTurnoAction(
 /** Retira de la cola un turno cuya pista no se pudo reproducir, sin puntuar al cantante. */
 export async function descartarTurnoRotoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   await cerrarTurno(limpio, queueItemId, 'skipped');
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -432,6 +458,7 @@ export async function descartarTurnoRotoAction(code: string, queueItemId: number
  */
 export async function confirmarInicioCelebracionAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   const sesion = await obtenerSesion(limpio);
   if (!sesion) return 0;
   const restante = await confirmarPresentacionCelebracion(sesion.id, queueItemId);
