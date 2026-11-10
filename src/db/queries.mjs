@@ -320,27 +320,16 @@ export async function getPoolItem(videoId) {
  * @returns {{ ok: boolean, ocultada?: boolean }}
  */
 export async function marcarPistaFallida(videoId, codigo) {
+  // Un evento 101/150 no demuestra por sí solo que la pista esté bloqueada
+  // universalmente. Conservar el catálogo y registrar la señal para revisión.
+  if (codigo !== 101 && codigo !== 150) return { ok: false };
   const db = await getDb();
-
-  // Solo los códigos que significan «no se puede insertar». Un error 5 es del
-  // reproductor HTML5 y puede ser transitorio; no debe retirar la pista.
-  if (codigo !== 101 && codigo !== 150) {
-    return { ok: false };
-  }
-
-  const res = await db
-    .prepare(
-      `update pool_items
-          set playback_blocked = 1,
-              fail_count = fail_count + 1,
-              last_error_code = ?,
-              checked_at = datetime('now')
-        where video_id = ?
-          and playback_blocked = 0`,
-    )
-    .run(String(codigo), videoId);
-
-  return { ok: true, ocultada: res.changes > 0 };
+  const res = await db.prepare(`update pool_items
+      set fail_count = fail_count + 1,
+          last_error_code = ?,
+          checked_at = datetime('now')
+      where video_id = ?`).run(String(codigo), videoId);
+  return { ok: res.changes > 0, ocultada: false };
 }
 
 /**
