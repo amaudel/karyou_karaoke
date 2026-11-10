@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import { chromium } from '/tmp/karyou-ui-test/node_modules/playwright/index.mjs';
 import { crearSesion, unirseSesion } from '../src/db/sessions.mjs';
+import { registrarPropietarioSala, cookiePropietarioSala } from '../src/db/session-owners.mjs';
 
-const { code } = await crearSesion('Guía de prueba', 'bar');
+const { code, id } = await crearSesion('Guía de prueba', 'bar');
+const ownerToken = await registrarPropietarioSala(id);
 const participant = await unirseSesion(code, 'Cantante prueba', undefined, 'Mesa 1');
 assert.equal(participant.ok, true);
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-await context.addCookies([{ name: `p_${code}`, value: participant.token, url: 'http://localhost:3000' }]);
+await context.addCookies([
+  { name: `p_${code}`, value: participant.token, url: 'http://localhost:3000' },
+  { name: cookiePropietarioSala(code), value: ownerToken, url: 'http://localhost:3000', httpOnly: true },
+]);
 const page = await context.newPage();
 const waitDialog = () => page.getByRole('dialog', { name: 'Guía de Karyou' });
 async function probarTour(url, titulos, clave) {

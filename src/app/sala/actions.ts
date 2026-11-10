@@ -1,12 +1,15 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { issueTvToken, verifyTvToken, tvCookieName } from '@/db/tv-access.mjs';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
   normalizarCodigo,
   crearSesion,
   obtenerSesion,
+  estadoSesion,
+  identificar,
   unirseSesion,
   pedirCancion,
   cancelarPeticion,
@@ -28,6 +31,7 @@ import {
   cookiePropietarioSala,
   registrarPropietarioSala,
   eliminarSalaAutorizada,
+  esPropietarioSala,
 } from '@/db/session-owners.mjs';
 
 /** Nombre de la cookie con la que un invitado se identifica en una sala. */
@@ -221,10 +225,24 @@ export async function cancelarAction(formData: FormData) {
   redirect(`/sala/${code}`);
 }
 
+/** Valida el secreto de propietario en el servidor, nunca un campo del formulario. */
+async function exigirPropietario(code: string) {
+  const sesion = await obtenerSesion(code);
+  if (!sesion) throw new Error('Sala inexistente.');
+  const jar = await cookies();
+  const permitido = await esPropietarioSala(
+    sesion.id,
+    jar.get(cookiePropietarioSala(code))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  );
+  if (!permitido) throw new Error('No autorizado para administrar esta sala.');
+}
+
 /* ---------------------------------------------------- controles de la pantalla */
 
 export async function iniciarTurnoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirPropietario(code);
   const res = await iniciarTurno(code, Number(formData.get('queueItemId')));
   if (!res.ok) {
     redirect(`/sala/${code}/control?error=${encodeURIComponent(res.error)}`);
@@ -266,8 +284,16 @@ export async function saltarTurnoInactivoMovilAction(formData: FormData) {
 export async function terminarTurnoMovilAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
   const queueItemId = Number(formData.get('queueItemId'));
+  const token = await tokenDe(code);
+  const quien = await identificar(code, token);
+  const estado = await estadoSesion(code);
+  // Solo el cantante del turno activo puede finalizarlo desde su móvil.
+  if (!quien || !estado?.sonando ||
+      estado.sonando.id !== queueItemId ||
+      estado.sonando.participant_id !== quien.participante.id) {
+    redirect(`/sala/${code}?error=NO_AUTORIZADO`);
+  }
   await cerrarTurnoConPuntuacion(code, queueItemId, { terminoNatural: false });
-
   revalidatePath(`/sala/${code}`);
   revalidatePath(`/sala/${code}/tv`);
   redirect(`/sala/${code}`);
@@ -275,6 +301,7 @@ export async function terminarTurnoMovilAction(formData: FormData) {
 
 export async function cerrarTurnoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirPropietario(code);
   const queueItemId = Number(formData.get('queueItemId'));
 
   // Un cierre manual —el operador salta o corta— también produce nota. Si no,
@@ -303,6 +330,7 @@ export async function aplaudirAction(formData: FormData) {
 
 export async function moverAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirPropietario(code);
   const direccion = Number(formData.get('direccion')) === -1 ? -1 : 1;
   await moverEnCola(code, Number(formData.get('queueItemId')), direccion);
 
@@ -313,6 +341,7 @@ export async function moverAction(formData: FormData) {
 
 export async function cambiarModoSesionAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirPropietario(code);
   const modo = String(formData.get('modo') ?? 'casa') === 'bar' ? 'bar' : 'casa';
   await cambiarModoSesion(code, modo);
 
@@ -324,6 +353,7 @@ export async function cambiarModoSesionAction(formData: FormData) {
 
 export async function cambiarEspectaculoAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirPropietario(code);
   const nivel = String(formData.get('espectaculo') ?? '');
   await cambiarEspectaculoSesion(code, nivel);
   revalidatePath(`/sala/${code}/control`);
@@ -333,11 +363,34 @@ export async function cambiarEspectaculoAction(formData: FormData) {
 
 export async function terminarSesionAction(formData: FormData) {
   const code = normalizarCodigo(String(formData.get('code') ?? ''));
+  await exigirPropietario(code);
   await cambiarEstadoSesion(code, 'finished');
 
   revalidatePath('/');
   revalidatePath(`/sala/${code}/tv`);
   redirect(`/sala/${code}/tv`);
+}
+
+/** Acciones de reproducción: propietario o TV emparejada con la sala. */
+async function exigirOperadorTv(code: string) {
+  const sesion = await obtenerSesion(code);
+  if (!sesion) throw new Error('Sala inexistente.');
+  const jar = await cookies();
+  if (await esPropietarioSala(
+    sesion.id, jar.get(cookiePropietarioSala(code))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  )) return;
+  if (await verifyTvToken(sesion.id, jar.get(tvCookieName(code))?.value)) return;
+  throw new Error('TV no autorizada. Empareja este dispositivo desde el panel del anfitrión.');
+}
+
+/** Solo el propietario puede emitir o renovar un acceso de TV. */
+export async function crearAccesoTvAction(code: string): Promise<string> {
+  const limpio = normalizarCodigo(code);
+  await exigirPropietario(limpio);
+  const sesion = await obtenerSesion(limpio);
+  if (!sesion) throw new Error('Sala inexistente.');
+  return issueTvToken(sesion.id);
 }
 
 /* ------------------------------------------- acciones sin redirección
@@ -349,6 +402,7 @@ export async function terminarSesionAction(formData: FormData) {
 /** Marca el turno como sonando. La llama el reproductor al pulsar Cantar. */
 export async function empezarTurnoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   const res = await iniciarTurno(limpio, queueItemId);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -368,6 +422,7 @@ export async function terminarTurnoAction(
   },
 ) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   const cierre = await cerrarTurnoConPuntuacion(limpio, queueItemId, telemetria);
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -392,6 +447,7 @@ export async function terminarTurnoAction(
 /** Retira de la cola un turno cuya pista no se pudo reproducir, sin puntuar al cantante. */
 export async function descartarTurnoRotoAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   await cerrarTurno(limpio, queueItemId, 'skipped');
   revalidatePath(`/sala/${limpio}`);
   revalidatePath(`/sala/${limpio}/tv`);
@@ -402,6 +458,7 @@ export async function descartarTurnoRotoAction(code: string, queueItemId: number
  */
 export async function confirmarInicioCelebracionAction(code: string, queueItemId: number) {
   const limpio = normalizarCodigo(code);
+  await exigirOperadorTv(limpio);
   const sesion = await obtenerSesion(limpio);
   if (!sesion) return 0;
   const restante = await confirmarPresentacionCelebracion(sesion.id, queueItemId);

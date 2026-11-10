@@ -638,13 +638,16 @@ export async function iniciarTurnoMovil(codigo, token, queueItemId) {
   const estado = await estadoSesion(codigo);
   if (!estado) return { ok: false, error: 'SESION_NO_EXISTE' };
 
+  // Nunca permitir iniciar un turno distinto del primero ni operar sin identidad.
+  const quien = await identificar(codigo, token);
+  if (!quien) return { ok: false, error: 'NO_IDENTIFICADO' };
+  if (estado.sonando) return { ok: false, error: 'YA_ESTA_CANTANDO' };
   const primero = estado.esperando[0];
   if (!primero || primero.id !== Number(queueItemId)) {
-    return iniciarTurno(codigo, queueItemId);
+    return { ok: false, error: 'TURNO_NO_CORRESPONDE' };
   }
 
   if (estado.modo === 'bar') {
-    const quien = await identificar(codigo, token);
     const esDuenio = Boolean(quien && quien.participante.id === primero.participant_id);
     if (!esDuenio && estado.segundosEnPantalla < SEGUNDOS_DESBLOQUEO_BAR) {
       return { ok: false, error: 'TURNO_RESERVADO_BAR' };
