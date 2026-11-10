@@ -182,6 +182,8 @@ export default function KaraokeStage({
   const [estado, setEstado] = useState<EstadoEscenario>('cargando');
   const [error, setError] = useState(ERROR_GENERICO);
   const [posicion, setPosicion] = useState(0);
+  const [cierrePendiente, setCierrePendiente] = useState(false);
+  const [errorCierre, setErrorCierre] = useState(false);
 
   /** Evita disparar play remoto o notificar inicio de turno más de una vez por canción. */
   const reproducidoRemotoIdRef = useRef<string | null>(null);
@@ -190,6 +192,7 @@ export default function KaraokeStage({
   // El manejador de estado vive dentro del efecto de montaje, que solo corre una
   // vez (el reproductor no se recrea). Sin este ref, `onTerminar` quedaría
   // congelado en el valor que tenía al montar y el turno no se cerraría.
+  const cierreEnCursoRef = useRef(false);
   const alTerminarRef = useRef(onTerminar);
   useEffect(() => {
     alTerminarRef.current = onTerminar;
@@ -240,6 +243,30 @@ export default function KaraokeStage({
   }, [reproduciendoRemoto]);
 
   const duracion = cancion?.duracion ?? null;
+
+  const finalizarActuacion = useCallback(async () => {
+    if (cierreEnCursoRef.current || !alTerminarRef.current) return;
+    cierreEnCursoRef.current = true;
+    setCierrePendiente(true);
+    setErrorCierre(false);
+    const te = telemetriaRef.current;
+    try {
+      await alTerminarRef.current({
+        pausas: te.pausas, saltos: te.saltos,
+        posicionFinal: Math.max(te.posicionFinal, playerRef.current?.getCurrentTime() ?? 0),
+        duracionObservada: te.duracionObservada,
+        terminoNatural: playerRef.current?.getPlayerState() === window.YT?.PlayerState.ENDED,
+      });
+    } catch (error) {
+      console.error('[Karyou TV] Error al finalizar:', error);
+      setErrorCierre(true);
+    } finally {
+      cierreEnCursoRef.current = false;
+      setCierrePendiente(false);
+    }
+  }, []);
+  const finalizarRef = useRef(finalizarActuacion);
+  useEffect(() => { finalizarRef.current = finalizarActuacion; }, [finalizarActuacion]);
 
   /* ------------------------------------------------ creación del reproductor */
 
@@ -325,14 +352,7 @@ export default function KaraokeStage({
               setEstado('terminado');
               // Avisa al servidor con lo observado: en la pantalla de TV esto
               // cierra el turno, calcula la puntuación y deja pasar al siguiente.
-              const te = telemetriaRef.current;
-              alTerminarRef.current?.({
-                pausas: te.pausas,
-                saltos: te.saltos,
-                posicionFinal: te.posicionFinal,
-                duracionObservada: te.duracionObservada,
-                terminoNatural: true,
-              });
+              void finalizarRef.current();
             } else if (evento.data === S.CUED) {
               setEstado('listo');
             }
@@ -416,6 +436,7 @@ export default function KaraokeStage({
     notificadoCantarIdRef.current = null;
 
     reiniciarTelemetria();
+    setErrorCierre(false);
     setOcultada(false);
     setPosicion(0);
     setAvisoAudio(false);
@@ -687,6 +708,12 @@ export default function KaraokeStage({
                   </button>
                 )}
 
+                {onTerminar && (estado === 'terminado' || errorCierre || (duracion !== null && duracion > 0 && posicion >= duracion - 3)) && (
+                  <button type="button" onClick={() => void finalizarActuacion()} disabled={cierrePendiente}
+                    className="rounded-xl border border-amber-400 px-4 py-3 font-bold text-amber-200 disabled:opacity-50">
+                    {cierrePendiente ? 'Guardando calificación…' : '🏆 Finalizar y mostrar calificación'}
+                  </button>
+                )}
                 {estado === 'terminado' && !onCantar && celebracionRestanteMs <= 0 && (
                   <button
                     type="button"
@@ -723,6 +750,7 @@ export default function KaraokeStage({
               </p>
             </div>
 
+            {errorCierre && <p role="alert" className="text-sm font-semibold text-red-300">No se pudo guardar la calificación. Reintenta con el botón Finalizar. Si persiste, verifica la vinculación de esta TV desde el panel del anfitrión.</p>}
             {avisoAudio && (
               <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3.5 text-sm animate-aparecer">
                 <p className="font-bold text-amber-300">
