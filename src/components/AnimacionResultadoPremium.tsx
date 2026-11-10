@@ -25,7 +25,7 @@ const PALETA_PERFECTA=['#FFD76A','#FFFDF7','#1DFBE1','#FFAE58','#FCE5A1'];
  * un MP4 estático ni agregar librerías pesadas. Los datos son los del servidor.
  * Sólo se activa mediante ?ceremonia=premium en la vista de prueba. */
 export default function AnimacionResultadoPremium({
-  resultado,patrocinio=null,siguienteEnCola=false,onInicio,onFin,persistirInicio=true,
+  resultado,patrocinio=null,siguienteEnCola=false,onInicio,onFin,
 }:Props){
   const [elapsed,setElapsed]=useState(0);
   const [width,setWidth]=useState(1920);
@@ -53,18 +53,11 @@ export default function AnimacionResultadoPremium({
   },[]);
 
   useEffect(()=>{
-    const key='karyou:ceremonia-premium:'+resultado.id;
-    let comienzo=Date.now();
-    let nuevo=true;
-    try{
-      const anterior=persistirInicio?Number(sessionStorage.getItem(key)):0;
-      if(anterior>0&&anterior<=comienzo&&comienzo-anterior<3600000){
-        comienzo=anterior;
-        nuevo=false;
-      }else if(persistirInicio) sessionStorage.setItem(key,String(comienzo));
-    }catch{/* Navegadores sin acceso a sessionStorage. */}
-    // El backend ya confirma una sola vez la apertura del resultado.
-    if(nuevo)Promise.resolve().then(()=>callbacks.current.onInicio?.())
+    // Una instancia recién montada debe reproducir la ceremonia completa.
+    // Persistir el reloj en sessionStorage hacía que, tras refrescar o cambiar
+    // entre escenario y espera, la animación naciera ya terminada y se omitiera.
+    const comienzo=Date.now();
+    Promise.resolve().then(()=>callbacks.current.onInicio?.())
       .catch(err=>console.warn('[Karyou] No se confirmó la ceremonia:',err));
     let id=0,previo=-1,terminado=false;
     const paso=()=>{
@@ -77,7 +70,7 @@ export default function AnimacionResultadoPremium({
     };
     id=requestAnimationFrame(paso);
     return ()=>{terminado=true;cancelAnimationFrame(id)};
-  },[resultado.id,persistirInicio]);
+  },[resultado.id]);
 
   const fase=elapsed>=FASES_PREMIUM.puntuacion?3:elapsed>=FASES_PREMIUM.metricas?2:
     elapsed>=FASES_PREMIUM.intriga?1:0;
