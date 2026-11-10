@@ -197,6 +197,7 @@ export default function EscenarioTV({
 
   return (
     <KaraokeStage
+      code={code}
       cancion={cancion}
       reproduciendoRemoto={reproduciendoRemoto}
       celebracionRestanteMs={estado.celebracionRestanteMs}
