@@ -360,82 +360,62 @@ test('el catálogo incluye duración y canal de la fuente principal', async () =
   }
 });
 
-test('una canción con todas sus versiones bloqueadas deja de ofrecer enlace', async () => {
-  // Se agrega una canción cuya única versión se bloquea después.
-  // Cada prueba que marca un bloqueo usa un videoId distinto: comparten la base
-  // del fixture, así que reutilizar uno haría que el orden de ejecución importara.
-  const agregada = await addToCatalog('Xkhcws7P204'); // Amanda Miguel - Él Me Mintió
+test('un error 101 no retira una canción con una sola versión', async () => {
+  const agregada = await addToCatalog('Xkhcws7P204');
   assert.equal(agregada.ok, true);
-
-  let cancion = (await getCatalog()).find((s) => s.song_id === agregada.songId);
-  assert.ok(cancion);
-  assert.equal(cancion.available_count, 1, 'al principio hay una versión disponible');
-  assert.ok(cancion.primary_video_id, 'y se puede cantar');
-
-  await marcarPistaFallida('Xkhcws7P204', 101);
-
-  cancion = (await getCatalog()).find((s) => s.song_id === agregada.songId);
-  assert.ok(cancion);
-  assert.equal(cancion.available_count, 0, 'ya no queda ninguna versión');
-  assert.equal(cancion.primary_video_id, null, 'no debe ofrecerse un enlace que llevaría a 404');
-  assert.equal(cancion.source_count, 1, 'pero la fuente sigue registrada por si se desbloquea');
+  const antes = (await getCatalog()).find(s => s.song_id === agregada.songId);
+  const reporte = await marcarPistaFallida('Xkhcws7P204', 101);
+  assert.equal(reporte.ocultada, false);
+  const despues = (await getCatalog()).find(s => s.song_id === agregada.songId);
+  assert.equal(despues.available_count, antes.available_count);
+  assert.equal(despues.primary_video_id, antes.primary_video_id);
 });
 
-// ------------------------------------------------- fallos de reproducción
-//
-// YouTube bloquea al insertar videos con reclamos de derechos (Content ID) aunque
-// la API los marque como embeddable = true. La única señal fiable es intentar
-// reproducir, así que la aplicación tiene que aprender del fallo.
-
-test('un bloqueo por derechos retira la pista de la búsqueda', async () => {
-  // Shakira - Suerte, de Echoe Entertainment.
-  assert.ok(
-    (await searchPool('suerte')).some((h) => h.video_id === 'r9DJTBU7RbE'),
-    'debe aparecer antes del fallo',
-  );
-  assert.ok(await getPoolItem('r9DJTBU7RbE'), 'y debe poder reproducirse');
-
-  const res = await marcarPistaFallida('r9DJTBU7RbE', 101);
-  assert.equal(res.ok, true);
-  assert.equal(res.ocultada, true);
-
-  assert.ok(
-    !(await searchPool('suerte')).some((h) => h.video_id === 'r9DJTBU7RbE'),
-    'ya no debe ofrecerse en la búsqueda',
-  );
-  assert.equal(await getPoolItem('r9DJTBU7RbE'), null, 'ni debe poder abrirse para cantar');
+// Un error del reproductor no demuestra que el video falle en todos los bares.
+test('101 registra evidencia pero conserva la pista en búsqueda y reproducción', async () => {
+  const videoId = 'r9DJTBU7RbE';
+  const antes = await getPoolItem(videoId);
+  assert.ok(antes);
+  const reporte = await marcarPistaFallida(videoId, 101);
+  assert.equal(reporte.ok, true);
+  assert.equal(reporte.ocultada, false);
+  assert.ok((await searchPool('suerte')).some(h => h.video_id === videoId));
+  assert.ok(await getPoolItem(videoId));
 });
 
-test('el código 150 también retira la pista', async () => {
-  // 101 y 150 significan lo mismo en la API de YouTube.
-  const res = await marcarPistaFallida('kv7iRaVpXYA', 150);
-  assert.equal(res.ok, true);
-  assert.equal(await getPoolItem('kv7iRaVpXYA'), null);
+test('150 también conserva la pista mientras se revisa el reporte', async () => {
+  const reporte = await marcarPistaFallida('kv7iRaVpXYA', 150);
+  assert.equal(reporte.ok, true);
+  assert.equal(reporte.ocultada, false);
+  assert.ok(await getPoolItem('kv7iRaVpXYA'));
 });
 
-test('un error transitorio NO retira la pista', async () => {
-  // El código 5 es un fallo del reproductor HTML5: puede ser pasajero y retirar
-  // la pista por eso sería perder una canción buena.
-  assert.ok(await getPoolItem('lay5lTxgt7o'), 'debe estar disponible antes');
-
-  const res = await marcarPistaFallida('lay5lTxgt7o', 5);
-  assert.equal(res.ok, false, 'el código 5 no debe registrarse como bloqueo');
-  assert.ok(await getPoolItem('lay5lTxgt7o'), 'la pista debe seguir disponible');
+test('un error transitorio 5 no se registra ni retira la pista', async () => {
+  const videoId = 'lay5lTxgt7o';
+  const antes = await getPoolItem(videoId);
+  assert.ok(antes);
+  const reporte = await marcarPistaFallida(videoId, 5);
+  assert.equal(reporte.ok, false);
+  assert.ok(await getPoolItem(videoId));
 });
 
-test('el contador de bloqueadas sube y es visible', async () => {
+test('el contador de pistas bloqueadas no aumenta por un solo reporte', async () => {
   const antes = (await getStats()).poolBlocked;
-  await marcarPistaFallida('q9mxcGGjats', 101); // Party Tyme - Como Tu Mujer
-  assert.equal((await getStats()).poolBlocked, antes + 1);
-  assert.ok((await getStats()).poolTotal < 30 + 2, 'las bloqueadas dejan de contar como usables');
+  await marcarPistaFallida('q9mxcGGjats', 101);
+  assert.equal((await getStats()).poolBlocked, antes);
 });
 
-test('marcar dos veces la misma pista no duplica el aviso', async () => {
-  const primera = await marcarPistaFallida('ov-2IoQ1LTI', 101);
-  assert.equal(primera.ocultada, true);
-
-  const segunda = await marcarPistaFallida('ov-2IoQ1LTI', 101);
-  assert.equal(segunda.ocultada, false, 'ya estaba marcada: no debe contar de nuevo');
+test('reportes repetidos incrementan evidencias sin ocultar', async () => {
+  const videoId = 'ov-2IoQ1LTI';
+  const db = await getDb();
+  const antes = await db.prepare('select fail_count from pool_items where video_id = ?').get(videoId);
+  const primera = await marcarPistaFallida(videoId, 101);
+  const segunda = await marcarPistaFallida(videoId, 101);
+  assert.equal(primera.ocultada, false);
+  assert.equal(segunda.ocultada, false);
+  const despues = await db.prepare('select fail_count, playback_blocked from pool_items where video_id = ?').get(videoId);
+  assert.equal(Number(despues.fail_count), Number(antes.fail_count) + 2);
+  assert.equal(Number(despues.playback_blocked), 0);
 });
 
 // ============================================================ sesiones y cola
@@ -623,19 +603,14 @@ test('cerrar un turno ya cerrado no hace nada', async () => {
   assert.equal(otra.ok, false, 'cerrar dos veces no debe alterar nada');
 });
 
-test('una canción bloqueada al reproducirse no se puede volver a pedir', async () => {
-  // Simula lo que pasa en la TV: se pide, se intenta cantar, YouTube la bloquea.
-  const { code } = await crearSesion('Bloqueo en vivo');
+test('un reporte aislado no impide pedir la canción en otra sala', async () => {
+  const { code } = await crearSesion('Reporte en vivo');
   const a = await unirseSesion(code, 'Ana');
-
   assert.equal((await pedirCancion(code, a.token, 's6MECNPPgIo')).ok, true);
   await marcarPistaFallida('s6MECNPPgIo', 150);
-
-  const { code: code2 } = await crearSesion('Despues del bloqueo');
-  const b = await unirseSesion(code2, 'Luis');
-  const res = await pedirCancion(code2, b.token, 's6MECNPPgIo');
-  assert.equal(res.ok, false);
-  assert.equal(res.error, 'PISTA_NO_DISPONIBLE');
+  const { code: otraSala } = await crearSesion('Otra sala independiente');
+  const b = await unirseSesion(otraSala, 'Luis');
+  assert.equal((await pedirCancion(otraSala, b.token, 's6MECNPPgIo')).ok, true);
 });
 
 // ========================================================= motor de puntuación
@@ -1152,30 +1127,17 @@ test('un resultado guardado se puede auditar', async () => {
   assert.equal(typeof entradas.priorScores, 'number', 'las previas se guardan contadas');
 });
 
-test('una pista bloqueada en medio del turno se descarta sin penalizar al cantante', async () => {
-  const { code } = await crearSesion('Pista rota en turno');
+test('un error de YouTube no provoca automáticamente puntuación ni bloqueo global', async () => {
+  const { code } = await crearSesion('Reporte en turno');
   const ana = await unirseSesion(code, 'Ana');
   const pedido = await pedirCancion(code, ana.token, 'U5TiuzOkJEY');
   assert.equal(pedido.ok, true);
-
   await iniciarTurno(code, pedido.queueItemId);
-  // Simula que el reproductor recibe 150 y marca la pista como bloqueada.
-  await marcarPistaFallida('U5TiuzOkJEY', 150);
-
-  // Aunque el operador pulse Saltar (cerrarTurnoConPuntuacion), no debe guardarse nota baja.
-  const cierre = await cerrarTurnoConPuntuacion(code, pedido.queueItemId, {
-    terminoNatural: false,
-  });
-  assert.equal(cierre.ok, true);
-  assert.equal(cierre.resultado, null);
-  assert.equal(cierre.bloqueada, true);
+  const reporte = await marcarPistaFallida('U5TiuzOkJEY', 150);
+  assert.equal(reporte.ocultada, false);
   assert.equal(await leerResultadoPorTurno(pedido.queueItemId), null);
-
-  // Dejamos la pista restaurada en el fixture por limpieza.
-  const db = await getDb();
-  await db
-    .prepare('update pool_items set playback_blocked = 0, fail_count = 0 where video_id = ?')
-    .run('U5TiuzOkJEY');
+  assert.ok(await getPoolItem('U5TiuzOkJEY'));
+  // El descarte del turno por fallo corresponde a la acción explícita de la TV.
 });
 
 test('dos transacciones asíncronas lanzadas a la vez no chocan en SQLite local', async () => {
