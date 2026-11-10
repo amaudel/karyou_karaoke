@@ -23,6 +23,8 @@ jobs:
         run: pnpm typecheck
       - name: Pruebas SQLite y libSQL
         run: pnpm test
+      - name: Regresiones de permisos y TV
+        run: node --test tests/seguridad-acciones.test.mjs
       - name: Compilación Next.js
         run: pnpm build
         env:
