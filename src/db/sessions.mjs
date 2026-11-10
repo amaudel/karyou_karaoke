@@ -806,8 +806,8 @@ export async function leerCola(sessionId) {
  * @param {string} codigo
  * @returns {Promise<EstadoSesion|null>}
  */
-export async function estadoSesion(codigo) {
-  const sesion = await obtenerSesion(codigo);
+export async function estadoSesion(codigo, sesionPrecargada = null) {
+  const sesion = sesionPrecargada ?? await obtenerSesion(codigo);
   if (!sesion) return null;
 
   const cola = await leerCola(sesion.id);
