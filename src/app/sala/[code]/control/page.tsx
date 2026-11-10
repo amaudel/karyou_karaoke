@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import CuentaRegresivaCelebracion from '@/components/CuentaRegresivaCelebracion';
 import { propietarioDeSala } from '@/db/bar-ads.mjs';
+import { esPropietarioSala, cookiePropietarioSala } from '@/db/session-owners.mjs';
 import { notFound } from 'next/navigation';
 import Refresco from '@/components/Refresco';
 import AccesosTV from '@/components/AccesosTV';
@@ -22,6 +23,13 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
   const code = normalizarCodigo(raw);
   const sesion = await obtenerSesion(code);
   if (!sesion) notFound();
+  const jar = await cookies();
+  const autorizado = await esPropietarioSala(
+    sesion.id,
+    jar.get(cookiePropietarioSala(code))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  );
+  if (!autorizado) notFound();
   const estado = (await estadoSesion(code)) as EstadoVista | null;
   if (!estado) notFound();
   const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
