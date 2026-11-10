@@ -179,6 +179,12 @@ export async function toggleFavoritoSalaAction(formData: FormData) {
   const videoId = String(formData.get('videoId') ?? '');
   const volver = String(formData.get('volver') ?? '');
 
+  // Los favoritos son globales: no permitir cambios desde una sala sin identidad válida.
+  const token = await tokenDe(code);
+  const participante = await identificar(code, token);
+  if (!participante) {
+    redirect(`/sala/${code}${anexarError(volver, 'NO_IDENTIFICADO')}`);
+  }
   await toggleFavorito(videoId);
 
   revalidatePath(`/sala/${code}`);
@@ -195,12 +201,18 @@ export async function pedirPorUrlAction(formData: FormData) {
   const url = String(formData.get('url') ?? '').trim();
   const volver = String(formData.get('volver') ?? '');
 
+  // La importación modifica el catálogo compartido: autenticar antes de oEmbed/SQL.
+  const token = await tokenDe(code);
+  const participante = await identificar(code, token);
+  if (!participante) {
+    redirect(`/sala/${code}${anexarError(volver, 'NO_IDENTIFICADO')}`);
+  }
+
   const importada = await importarPistaPorUrl(url);
   if (!importada.ok) {
     redirect(`/sala/${code}${anexarError(volver, importada.error)}`);
   }
 
-  const token = await tokenDe(code);
   const res = await pedirCancion(code, token, importada.videoId);
 
   revalidatePath(`/sala/${code}`);
