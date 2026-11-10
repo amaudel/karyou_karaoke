@@ -54,7 +54,7 @@ export default function AnimacionResultadoPremium({
 
   useEffect(()=>{
     // Una instancia recién montada debe reproducir la ceremonia completa.
-    // Persistir el reloj en sessionStorage hacía que, tras refrescar o cambiar
+    // Persistir el reloj en el navegador hacía que, tras refrescar o cambiar
     // entre escenario y espera, la animación naciera ya terminada y se omitiera.
     const comienzo=Date.now();
     Promise.resolve().then(()=>callbacks.current.onInicio?.())
