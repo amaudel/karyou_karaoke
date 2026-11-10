@@ -33,7 +33,12 @@ export default function Refresco({ cada = 5000 }: { cada?: number }) {
     };
 
     const reanudar = () => {
-      if (!activo || !permitido()) return;
+      if (!activo) return;
+      if (!permitido()) {
+        if (timer !== undefined) clearTimeout(timer);
+        timer = undefined;
+        return;
+      }
       // Evita doble refresco al recibir visibilitychange, focus y online juntos.
       if (Date.now() - ultimaActualizacion >= Math.max(2000, cada)) {
         ultimaActualizacion = Date.now();
