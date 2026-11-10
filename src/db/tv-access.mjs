@@ -21,7 +21,9 @@ export async function issueTvToken(sessionId) {
 }
 export async function verifyTvToken(sessionId, token) {
   if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return false;
-  await ensure();
+  // La verificación nunca crea tablas: una solicitud pública no debe modificar el esquema.
+  const tabla = await (await getDb()).prepare("select 1 from sqlite_master where type='table' and name='tv_access'").get();
+  if (!tabla) return false;
   const row = await (await getDb()).prepare('select token_hash from tv_access where session_id=?').get(sessionId);
   if (!row || typeof row.token_hash !== 'string' || !/^[a-f0-9]{64}$/.test(row.token_hash)) return false;
   return timingSafeEqual(Buffer.from(row.token_hash, 'hex'), Buffer.from(hash(token), 'hex'));
