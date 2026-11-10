@@ -7,9 +7,9 @@ const leer = ruta => readFileSync(new URL(ruta, import.meta.url), 'utf8');
 test('móviles usan polling de 5 s y TV conserva 2 s', () => {
   const movil = leer('../src/app/sala/[code]/page.tsx');
   const tv = leer('../src/app/sala/[code]/tv/page.tsx');
-  assert.match(movil, /<Refresco cada=\\{5000\\}/);
-  assert.doesNotMatch(movil, /<Refresco cada=\\{2000\\}/);
-  assert.match(tv, /<Refresco cada=\\{2000\\}/);
+  assert.match(movil, /<Refresco cada=\{5000\}/);
+  assert.doesNotMatch(movil, /<Refresco cada=\{2000\}/);
+  assert.match(tv, /<Refresco cada=\{2000\}/);
 });
 
 test('polling cancela el temporizador al ocultarse y al desmontar', () => {
