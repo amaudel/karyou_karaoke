@@ -159,7 +159,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
   }
 
   /* ------------------------------------------------------------ ya dentro */
-  const estado = (await estadoSesion(code)) as EstadoVista | null;
+  const estado = (await estadoSesion(code, sesion)) as EstadoVista | null;
   if (!estado) notFound();
 
   const limiteSala = estado.limitePendientes ?? LIMITE_PENDIENTES;
