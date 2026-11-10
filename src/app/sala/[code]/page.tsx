@@ -216,7 +216,7 @@ export default async function SalaPage({ params, searchParams }: Props) {
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-purple-600/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-pink-500/15 blur-3xl" />
 
-      <Refresco cada={2000} />
+      <Refresco cada={5000} />
 
       <div className="relative z-10 space-y-6">
         {tengoRevancha && <div className="rounded-xl border border-orange-400/40 bg-orange-500/15 px-4 py-3 text-sm text-orange-100"><strong>🔥 ¡Tienes una revancha pendiente!</strong><p className="mt-1 text-orange-100/80">En tu próxima canción tendrás más oportunidades de alcanzar una puntuación excelente.</p></div>}
