@@ -38,5 +38,5 @@ test('inicio móvil rechaza identidad ausente y turnos fuera de orden', () => {
   const body = bodyOf(sessions, 'iniciarTurnoMovil');
   assert.match(body, /if \(!quien\)/);
   assert.match(body, /primero\.id !== Number\(queueItemId\)/);
-  assert.doesNotMatch(body, /return iniciarTurno\(codigo, queueItemId\);\s*\}/);
+  assert.match(body, /return \{ ok: false, error: 'TURNO_NO_CORRESPONDE' \}/);
 });
