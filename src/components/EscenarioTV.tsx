@@ -124,7 +124,8 @@ export default function EscenarioTV({
   const manejarTerminar = useCallback(async (telemetria: Telemetria) => {
     try {
       const guardado = await onTerminar?.(telemetria);
-      if (guardado && debeRevelarResultado({
+      if (!guardado) throw new Error('El servidor no confirmó una puntuación para este turno.');
+      if (debeRevelarResultado({
         resultado: guardado,
         reciente: true,
         ultimoMostradoId: reveladoRef.current,
@@ -136,6 +137,7 @@ export default function EscenarioTV({
       }
     } catch (error) {
       console.error('[Karyou TV] No se pudo confirmar la puntuación:', error);
+      throw error;
     } finally {
       // Actualizar cola/ranking aun si la nota llegó por el canal inmediato.
       router.refresh();

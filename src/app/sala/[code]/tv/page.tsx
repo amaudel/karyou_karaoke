@@ -1,4 +1,7 @@
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { esPropietarioSala, cookiePropietarioSala } from '@/db/session-owners.mjs';
+import { verifyTvToken, tvCookieName } from '@/db/tv-access.mjs';
 import QRCode from 'qrcode';
 import EscenarioTV from '@/components/EscenarioTV';
 import PantallaEspera from '@/components/PantallaEspera';
@@ -34,6 +37,28 @@ export default async function PantallaPage({ params, searchParams }: Props) {
 
   const sesion = await obtenerSesion(code);
   if (!sesion) notFound();
+
+  // Bloquear la pantalla ANTES de montar YouTube: una sala antigua puede
+  // conservar la cola pero carecer de la cookie de TV introducida por seguridad.
+  // El propietario del mismo dispositivo sigue autorizado sin emparejar de nuevo.
+  const jar = await cookies();
+  const autorizado = await esPropietarioSala(
+    sesion.id,
+    jar.get(cookiePropietarioSala(code))?.value,
+    jar.get('karyou_bar_owner')?.value,
+  ) || await verifyTvToken(sesion.id, jar.get(tvCookieName(code))?.value);
+  if (!autorizado) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+        <section role="alert" className="w-full max-w-xl rounded-2xl border border-amber-400/50 bg-slate-900 p-8 text-center space-y-5">
+          <h1 className="text-2xl font-extrabold text-amber-300">TV pendiente de emparejar</h1>
+          <p>Esta sala sigue activa. Por seguridad, esta pantalla debe vincularse nuevamente antes de reproducir canciones y guardar calificaciones.</p>
+          <p className="text-slate-300">Desde el dispositivo del anfitrión, abre el panel de control de esta sala, genera un enlace de TV y ábrelo aquí. No elimines la sala ni sus canciones.</p>
+          <p className="font-mono text-sm text-slate-400">Sala: {code}</p>
+        </section>
+      </main>
+    );
+  }
 
   const estado = (await estadoSesion(code)) as EstadoVista | null;
   if (!estado) notFound();

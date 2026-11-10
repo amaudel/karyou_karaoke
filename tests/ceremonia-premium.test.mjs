@@ -64,7 +64,7 @@ test('premium es predeterminado; ?ceremonia=clasica permite volver al diseño pr
 test('composición premium no inicia canciones ni modifica puntaje o base de datos',()=>{
   const animacion=readFileSync('src/components/AnimacionResultadoPremium.tsx','utf8');
   assert.doesNotMatch(animacion,/iniciarTurno|empezarTurnoAction|playVideo\(|loadVideoById\(/);
-  assert.match(animacion,/sessionStorage/);
+  assert.doesNotMatch(animacion,/sessionStorage/);
   assert.match(animacion,/objectFit:'contain'/);
   assert.match(animacion,/callbacks\.current\.onFin\(\)/);
 });
@@ -103,10 +103,10 @@ test('100: jingle exclusivo dentro de los mismos 8,7 segundos, sin autoplay',()=
   assert.doesNotMatch(c,/playVideo\(|loadVideoById\(|empezarTurnoAction/);
 });
 
-test('demo siempre comienza desde cero, la TV real conserva deduplicación por resultado',()=>{
+test('la ceremonia empieza desde cero al montarse, también tras refrescar la TV',()=>{
   const animacion=readFileSync('src/components/AnimacionResultadoPremium.tsx','utf8');
   const demo=readFileSync('src/app/demo/ceremonia/DemoClient.tsx','utf8');
-  assert.match(animacion,/persistirInicio=true/);
-  assert.match(animacion,/persistirInicio\?Number\(sessionStorage\.getItem\(key\)\):0/);
+  assert.match(animacion,/const comienzo=Date\.now\(\)/);
+  assert.doesNotMatch(animacion,/sessionStorage/);
   assert.match(demo,/persistirInicio=\{false\}/);
 });
