@@ -26,7 +26,11 @@ export async function medirRutaSql(ruta, fn, { registrar = console.info, motor =
   const muestra = { ruta, motor, consultas: 0, errores: 0, sqlMs: 0, tiempos: [], inicio: performance.now() };
   return contexto.run(muestra, async () => {
     try { return await fn(); }
-    finally { registrar(JSON.stringify({ evento: 'karyou_sql_metrics', ...resumenSql(muestra) })); }
+    finally {
+      // Una caída del logger jamás debe impedir servir la pantalla o esconder el error original.
+      try { registrar(JSON.stringify({ evento: 'karyou_sql_metrics', ...resumenSql(muestra) })); }
+      catch { /* Métricas best-effort */ }
+    }
   });
 }
 
