@@ -1842,3 +1842,51 @@ test('lecturas concurrentes de estado mantienen aislamiento entre salas', async 
   assert.equal(ea.participantes.length, 1);
   assert.equal(eb.participantes.length, 1);
 });
+
+
+test('métricas SQL: cuenta ejecuciones y mantiene aislamiento entre salas concurrentes', async () => {
+  const { medirRutaSql } = await import('../src/db/sql-metrics.mjs');
+  const previo = process.env.KARYOU_SQL_METRICS;
+  process.env.KARYOU_SQL_METRICS = '1';
+  const registros = [];
+  const registrar = (linea) => registros.push(JSON.parse(linea));
+  try {
+    const a = await crearSesion('Métrica A');
+    const b = await crearSesion('Métrica B');
+    const [ea, eb] = await Promise.all([
+      medirRutaSql('participante', () => estadoSesion(a.code), { registrar, motor }),
+      medirRutaSql('tv', () => estadoSesion(b.code), { registrar, motor }),
+    ]);
+    assert.equal(ea.sesion.id, a.id);
+    assert.equal(eb.sesion.id, b.id);
+    assert.equal(registros.length, 2);
+    assert.deepEqual(registros.map((x) => x.ruta).sort(), ['participante', 'tv']);
+    for (const dato of registros) {
+      assert.ok(dato.consultas >= 3);
+      assert.equal(dato.errores, 0);
+      assert.ok(dato.sqlMs >= 0);
+      assert.ok(dato.p95SqlMs >= 0);
+      assert.ok(dato.renderMs >= 0);
+      assert.equal(dato.motor, motor);
+      assert.ok(!JSON.stringify(dato).includes(a.code));
+      assert.ok(!JSON.stringify(dato).includes(b.code));
+    }
+  } finally {
+    if (previo === undefined) delete process.env.KARYOU_SQL_METRICS;
+    else process.env.KARYOU_SQL_METRICS = previo;
+  }
+});
+
+test('métricas SQL desactivadas por defecto no emiten registros', async () => {
+  const { medirRutaSql } = await import('../src/db/sql-metrics.mjs');
+  const previo = process.env.KARYOU_SQL_METRICS;
+  delete process.env.KARYOU_SQL_METRICS;
+  let emisiones = 0;
+  try {
+    const resultado = await medirRutaSql('tv', async () => 42, { registrar: () => { emisiones++; } });
+    assert.equal(resultado, 42);
+    assert.equal(emisiones, 0);
+  } finally {
+    if (previo !== undefined) process.env.KARYOU_SQL_METRICS = previo;
+  }
+});
