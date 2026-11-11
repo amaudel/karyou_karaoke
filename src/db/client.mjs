@@ -1,3 +1,4 @@
+import { instrumentarPrepare } from './sql-metrics.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { createClient } from '@libsql/client';
 import fs from 'node:fs';
@@ -77,7 +78,7 @@ async function transaccionTurso(cliente, fn) {
   // pierden en silencio. Hay que abrir la transacción, ejecutar y confirmar.
   const tx = await cliente.transaction('write');
   try {
-    const prepararTx = prepareTurso((sql, args) => tx.execute({ sql, args: args ?? [] }));
+    const prepararTx = instrumentarPrepare(prepareTurso((sql, args) => tx.execute({ sql, args: args ?? [] })));
     const resultado = await fn({ prepare: prepararTx });
     await tx.commit();
     return resultado;
@@ -174,10 +175,10 @@ export async function getDb() {
     // frenaría ráfagas como los aplausos).
     const serializar = esArchivoLocal(process.env.TURSO_DATABASE_URL);
 
-    const prepare = prepareTurso((sql, args) => {
+    const prepare = instrumentarPrepare(prepareTurso((sql, args) => {
       const ejecutar = () => dbTurso.execute({ sql, args: args ?? [] });
       return serializar && escribe(sql) ? encolarEscritura(ejecutar) : ejecutar();
-    });
+    }));
 
     return {
       prepare,
@@ -204,7 +205,7 @@ export async function getDb() {
     dbLocal.exec('pragma foreign_keys = on');
   }
 
-  const prepare = prepareLocal(dbLocal);
+  const prepare = instrumentarPrepare(prepareLocal(dbLocal));
 
   return {
     prepare,
