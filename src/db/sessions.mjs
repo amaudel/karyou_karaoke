@@ -810,13 +810,18 @@ export async function estadoSesion(codigo, sesionPrecargada = null) {
   const sesion = sesionPrecargada ?? await obtenerSesion(codigo);
   if (!sesion) return null;
 
-  const cola = await leerCola(sesion.id);
+  // Consultas independientes: en Turso se solapan latencias de red.
+  // No se comparten transacciones ni se altera el orden de la cola.
+  const [cola, participantes, celebracionRestanteMs] = await Promise.all([
+    leerCola(sesion.id),
+    listarParticipantes(sesion.id),
+    celebracionPendiente(sesion.id),
+  ]);
   const sonando = cola.find((f) => f.status === 'singing') ?? null;
   const esperando = cola.filter((f) => f.status === 'waiting');
   const segundosEnPantalla = !sonando
     ? await segundosEsperandoEnTV(sesion.id, esperando[0])
     : 0;
-  const celebracionRestanteMs = await celebracionPendiente(sesion.id);
 
   return {
     sesion,
@@ -824,7 +829,7 @@ export async function estadoSesion(codigo, sesionPrecargada = null) {
     limitePendientes: limitePendientesDe(sesion.modo),
     segundosEnPantalla,
     celebracionRestanteMs,
-    participantes: await listarParticipantes(sesion.id),
+    participantes,
     cola,
     sonando,
     esperando,
