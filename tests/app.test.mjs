@@ -1822,3 +1822,23 @@ test('estadoSesion reutiliza la sesión precargada sin alterar datos de cola ni 
   assert.deepEqual(optimizado, normal);
   assert.equal(optimizado.sesion.id, sesion.id);
 });
+
+
+test('lecturas concurrentes de estado mantienen aislamiento entre salas', async () => {
+  const a = await crearSesion('Paralelo sala A');
+  const b = await crearSesion('Paralelo sala B');
+  const pa = await unirseSesion(a.code, 'Ana');
+  const pb = await unirseSesion(b.code, 'Beto');
+  assert.equal(pa.ok, true);
+  assert.equal(pb.ok, true);
+  const [ea, eb, ea2, eb2] = await Promise.all([
+    estadoSesion(a.code), estadoSesion(b.code),
+    estadoSesion(a.code), estadoSesion(b.code),
+  ]);
+  assert.equal(ea.sesion.id, a.id);
+  assert.equal(eb.sesion.id, b.id);
+  assert.deepEqual(ea, ea2);
+  assert.deepEqual(eb, eb2);
+  assert.equal(ea.participantes.length, 1);
+  assert.equal(eb.participantes.length, 1);
+});
