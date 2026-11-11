@@ -1890,3 +1890,42 @@ test('métricas SQL desactivadas por defecto no emiten registros', async () => {
     if (previo !== undefined) process.env.KARYOU_SQL_METRICS = previo;
   }
 });
+
+
+test('benchmark controlado: 2 salas, 12 lecturas por sala, solo fixture local', async () => {
+  const { medirRutaSql } = await import('../src/db/sql-metrics.mjs');
+  const anterior = process.env.KARYOU_SQL_METRICS;
+  process.env.KARYOU_SQL_METRICS = '1';
+  const registros = [];
+  try {
+    const salas = await Promise.all([
+      crearSesion('Benchmark aislado A'), crearSesion('Benchmark aislado B'),
+    ]);
+    // Calentamiento excluido de métricas, igual para ambos motores.
+    for (const sala of salas) await estadoSesion(sala.code);
+    const ejecuciones = [];
+    for (const sala of salas) {
+      for (let i = 0; i < 12; i++) {
+        ejecuciones.push(medirRutaSql('estado_fixture', () => estadoSesion(sala.code), {
+          motor, registrar: (linea) => registros.push(JSON.parse(linea)),
+        }));
+      }
+    }
+    const estados = await Promise.all(ejecuciones);
+    assert.equal(estados.length, 24);
+    assert.equal(registros.length, 24);
+    assert.ok(registros.every((r) => r.consultas >= 3 && r.errores === 0));
+    const ordenados = registros.map((r) => r.renderMs).sort((a, b) => a - b);
+    const consultas = registros.reduce((n, r) => n + r.consultas, 0);
+    const media = consultas / registros.length;
+    const p95 = ordenados[Math.ceil(ordenados.length * 0.95) - 1];
+    console.log('# BENCHMARK_SQL_FIXTURE ' + JSON.stringify({
+      motor, salas: 2, renders: registros.length,
+      consultasTotales: consultas, consultasMediaPorRender: media,
+      p95RenderMs: p95, entorno: 'fixture-local-no-turso-remoto',
+    }));
+  } finally {
+    if (anterior === undefined) delete process.env.KARYOU_SQL_METRICS;
+    else process.env.KARYOU_SQL_METRICS = anterior;
+  }
+});
