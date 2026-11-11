@@ -1,3 +1,4 @@
+import { medirRutaSql } from '@/db/sql-metrics.mjs';
 import RankingMesas from '@/components/RankingMesas';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -55,7 +56,11 @@ type Props = {
   searchParams: Promise<{ q?: string; error?: string; pagina?: string }>;
 };
 
-export default async function SalaPage({ params, searchParams }: Props) {
+export default async function SalaPage(props: Props) {
+  return medirRutaSql('participante', () => renderSalaPage(props));
+}
+
+async function renderSalaPage({ params, searchParams }: Props) {
   const { code: codeSucio } = await params;
   const code = normalizarCodigo(codeSucio);
 
