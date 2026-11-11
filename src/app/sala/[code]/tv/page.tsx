@@ -1,3 +1,4 @@
+import { medirRutaSql } from '@/db/sql-metrics.mjs';
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { esPropietarioSala, cookiePropietarioSala } from '@/db/session-owners.mjs';
@@ -27,7 +28,11 @@ type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ceremon
 /** Cuánto tiempo se considera «recién salido» un resultado. Gobierna la animación. */
 const SEGUNDOS_RECIENTE = 45;
 
-export default async function PantallaPage({ params, searchParams }: Props) {
+export default async function PantallaPage(props: Props) {
+  return medirRutaSql('tv', () => renderPantallaPage(props));
+}
+
+async function renderPantallaPage({ params, searchParams }: Props) {
   const { code: codeSucio } = await params;
   const query = await searchParams;
   // La nueva ceremonia es la predeterminada. El modo clásico sigue disponible
