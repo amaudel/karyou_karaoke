@@ -60,7 +60,7 @@ export default async function PantallaPage({ params, searchParams }: Props) {
     );
   }
 
-  const estado = (await estadoSesion(code)) as EstadoVista | null;
+  const estado = (await estadoSesion(code, sesion)) as EstadoVista | null;
   if (!estado) notFound();
 
   const crudo = (await ultimoResultado(sesion.id)) as (ResultadoVista & { segundos: number }) | null;
