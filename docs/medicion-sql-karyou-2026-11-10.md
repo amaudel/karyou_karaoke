@@ -22,3 +22,8 @@ Ejecutar `npm run test:sqlite`, `npm run test:libsql`, `npm run typecheck` y `np
 ## Límites
 
 El PR incorpora medición **ejecutable**, pero no presenta cifras de latencia de Turso remoto: no se ha corrido una carga de staging. Los tests verifican el comportamiento de la instrumentación y su aislamiento; los valores numéricos de rendimiento dependen del entorno. La medición no añade un endpoint de cambios ni modifica el polling.
+
+
+## Benchmark automatizado de referencia
+
+El test `benchmark controlado` crea dos salas en el fixture temporal, calienta cada estado y ejecuta 12 lecturas por sala (24 renders lógicos), con concurrencia entre ambas. Imprime una línea `BENCHMARK_SQL_FIXTURE` por motor con conteo total de consultas, media por render y p95 de duración del estado. Las duraciones en CI son orientativas y no deben compararse entre máquinas ni confundirse con p95 de producción. Este benchmark no renderiza React/Next.js: mide `estadoSesion` únicamente. Las métricas reales por pantalla se capturan con el protocolo staging anterior.
