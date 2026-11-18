@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { intervaloSondeo, debeSondear } from '@/domain/polling.mjs';
+import { diag } from '@/lib/diagnostico-reproductor.mjs';
 
 /**
  * Sondeo adaptativo sin cambiar la fuente de verdad ni desmontar el reproductor.
@@ -27,6 +28,7 @@ export default function Refresco({ cada = 5000 }: { cada?: number }) {
       timer = setTimeout(() => {
         if (!activo || !permitido()) return;
         ultimaActualizacion = Date.now();
+        diag('refresh_pedido', { motivo: 'temporizador', cadaMs: cada });
         router.refresh();
         programar();
       }, intervaloSondeo(cada, Math.random()));
@@ -42,6 +44,7 @@ export default function Refresco({ cada = 5000 }: { cada?: number }) {
       // Evita doble refresco al recibir visibilitychange, focus y online juntos.
       if (Date.now() - ultimaActualizacion >= Math.max(2000, cada)) {
         ultimaActualizacion = Date.now();
+        diag('refresh_pedido', { motivo: 'reanudar', visible: document.visibilityState });
         router.refresh();
       }
       programar();

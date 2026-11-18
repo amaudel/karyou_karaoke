@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { debeRevelarResultado, nuevaCancionInterrumpeResultado } from '@/domain/tv/revelacion-resultado.mjs';
+import { diag } from '@/lib/diagnostico-reproductor.mjs';
 import KaraokeStage, { type CancionEnEscenario, type Telemetria } from './KaraokeStage';
 import PanelTV from './PanelTV';
 import EstadisticasTV from './EstadisticasTV';
@@ -140,6 +141,7 @@ export default function EscenarioTV({
       throw error;
     } finally {
       // Actualizar cola/ranking aun si la nota llegó por el canal inmediato.
+      diag('refresh_pedido', { motivo: 'fin_de_turno' });
       router.refresh();
     }
   }, [onTerminar, router]);

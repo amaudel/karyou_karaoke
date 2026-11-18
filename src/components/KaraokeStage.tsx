@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { reportarPistaBloqueada } from '@/app/actions';
 import { MarcoYouTube } from './MarcoYouTube.mjs';
+import PanelDiagnostico from './PanelDiagnostico';
+import { diag, diagnosticoActivo, detectarAtasco } from '@/lib/diagnostico-reproductor.mjs';
 
 /* ------------------------------------------------------------------ tipos YT */
 
@@ -16,6 +18,7 @@ type YTPlayer = {
   getPlayerState(): number;
   getCurrentTime(): number;
   getDuration(): number;
+  getVideoData?(): { video_id?: string };
   destroy(): void;
 };
 
@@ -36,6 +39,32 @@ declare global {
     YT?: YTNamespace;
     onYouTubeIframeAPIReady?: () => void;
   }
+}
+
+/* -------------------------------------------------------------- diagnóstico */
+
+const NOMBRE_ESTADO_YT: Record<number, string> = {
+  [-1]: 'UNSTARTED',
+  0: 'ENDED',
+  1: 'PLAYING',
+  2: 'PAUSED',
+  3: 'BUFFERING',
+  5: 'CUED',
+};
+
+/**
+ * Foto del reproductor para el diagnóstico (solo se usa con ?debug=1).
+ * `video` es lo que YouTube dice estar reproduciendo y `esperado` lo que la app
+ * pidió: si difieren, lo que suena es otra cosa (típicamente un anuncio).
+ */
+function instantanea(player: YTPlayer | null, esperado: string): Record<string, unknown> {
+  if (!player) return { esperado };
+  const foto: Record<string, unknown> = { esperado };
+  try { foto.estadoYT = NOMBRE_ESTADO_YT[player.getPlayerState()] ?? player.getPlayerState(); } catch { /* sin player */ }
+  try { foto.t = Number(player.getCurrentTime().toFixed(2)); } catch { /* sin player */ }
+  try { foto.duracion = Number(player.getDuration().toFixed(2)); } catch { /* sin player */ }
+  try { foto.video = player.getVideoData?.()?.video_id; } catch { /* sin player */ }
+  return foto;
 }
 
 /* ------------------------------------------------------------------ estados */
@@ -253,6 +282,11 @@ export default function KaraokeStage({
     setCierrePendiente(true);
     setErrorCierre(false);
     const te = telemetriaRef.current;
+    diag('app_finalizar_inicio', {
+      ...instantanea(playerRef.current, videoIdRef.current),
+      pausas: te.pausas,
+      saltos: te.saltos,
+    });
     try {
       await alTerminarRef.current({
         pausas: te.pausas, saltos: te.saltos,
@@ -262,6 +296,7 @@ export default function KaraokeStage({
       });
     } catch (error) {
       console.error('[Karyou TV] Error al finalizar:', error);
+      diag('app_finalizar_error', { mensaje: error instanceof Error ? error.message : String(error) });
       setErrorCierre(true);
     } finally {
       cierreEnCursoRef.current = false;
@@ -321,10 +356,17 @@ export default function KaraokeStage({
           },
           onStateChange: (evento: { data: number }) => {
             if (destruido) return;
+            diag('yt_estado', {
+              nuevo: NOMBRE_ESTADO_YT[evento.data] ?? evento.data,
+              ...instantanea(player, videoIdRef.current),
+              bloqueo: bloqueoRef.current,
+              remoto: reproduciendoRemotoRef.current,
+            });
             const S = window.YT!.PlayerState;
             if (evento.data === S.PLAYING) {
               // Los controles nativos de YouTube NO pueden eludir la protección.
               if (bloqueoRef.current) {
+                diag('app_pausa_por_bloqueo', instantanea(player, videoIdRef.current));
                 try { player.pauseVideo(); } catch { /* reproductor desapareciendo */ }
                 setEstado('listo');
                 return;
@@ -364,6 +406,7 @@ export default function KaraokeStage({
             if (destruido) return;
 
             const idActual = videoIdRef.current;
+            diag('yt_error', { codigo: evento.data, ...instantanea(player, idActual) });
             if (!idActual) return;
             // El código queda en la consola para poder diagnosticar. La interfaz
             // muestra un mensaje en español: un «YT.Player Error 101» no le dice
@@ -444,8 +487,10 @@ export default function KaraokeStage({
     setPosicion(0);
     setAvisoAudio(false);
 
+    diag('app_video_cambio', { video: videoIdActual, remoto: reproduciendoRemotoRef.current });
     try {
       if (!reproduciendoRemotoRef.current) {
+        diag('app_orden', { accion: 'cueVideoById', video: videoIdActual });
         player.cueVideoById(videoIdActual);
         setEstado('listo');
       }
@@ -470,12 +515,67 @@ export default function KaraokeStage({
     reiniciarTelemetria();
     setAvisoAudio(false);
     setEstado('cargando_pista');
+    diag('app_orden', { accion: 'loadVideoById (play remoto)', video: videoIdActual });
     try {
       player.loadVideoById(videoIdActual);
     } catch {
       setAvisoAudio(true);
     }
   }, [reproduciendoRemoto, videoIdActual, playerListo, reiniciarTelemetria]);
+
+  /* ------------------------------------------------ diagnóstico (?debug=1) */
+
+  // Lo que el servidor le dice al reproductor en cada refresco. Si a mitad de una
+  // canción `remoto` o `bloqueo` cambian, el servidor está dando órdenes distintas.
+  const bloqueado = celebracionRestanteMs > 0;
+  useEffect(() => {
+    diag('servidor_estado', { video: videoIdActual, remoto: reproduciendoRemoto, bloqueo: bloqueado });
+  }, [videoIdActual, reproduciendoRemoto, bloqueado]);
+
+  // Un segundo a segundo muy barato: marca los atascos (el reproductor dice que
+  // reproduce, pero el tiempo no avanza) y deja un latido cada 5 s.
+  useEffect(() => {
+    if (!diagnosticoActivo()) return;
+    let previo: { t: number; jugando: boolean; enMs: number } | null = null;
+    let ciclos = 0;
+    const id = window.setInterval(() => {
+      const player = playerRef.current;
+      if (!player) return;
+      try {
+        const t = player.getCurrentTime();
+        const jugando = player.getPlayerState() === window.YT?.PlayerState.PLAYING;
+        const actual = { t, jugando, enMs: performance.now() };
+        const atasco = detectarAtasco(previo, actual);
+        ciclos += 1;
+        if (atasco) {
+          diag('atasco', { ...instantanea(player, videoIdRef.current), ...atasco });
+        } else if (ciclos % 5 === 0) {
+          diag('latido', instantanea(player, videoIdRef.current));
+        }
+        previo = actual;
+      } catch {
+        // El reproductor puede estar destruyéndose.
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Un cambio de pestaña, de pantalla completa o de red puede pausar o frenar la
+  // reproducción sin que la aplicación haga nada.
+  useEffect(() => {
+    if (!diagnosticoActivo()) return;
+    const alVisibilidad = () => diag('navegador_visibilidad', { visible: document.visibilityState });
+    const alConexion = () => diag('navegador_conexion', { enLinea: navigator.onLine });
+    document.addEventListener('visibilitychange', alVisibilidad);
+    window.addEventListener('online', alConexion);
+    window.addEventListener('offline', alConexion);
+    diag('diagnostico_activo', { visible: document.visibilityState, enLinea: navigator.onLine });
+    return () => {
+      document.removeEventListener('visibilitychange', alVisibilidad);
+      window.removeEventListener('online', alConexion);
+      window.removeEventListener('offline', alConexion);
+    };
+  }, []);
 
   /* -------------------------------------------------------------- progreso */
 
@@ -595,6 +695,10 @@ export default function KaraokeStage({
       try { playerRef.current?.pauseVideo(); } catch { /* vídeo detenido */ }
       setEstado('listo');
     });
+    diag('app_orden', {
+      accion: reanudando || !videoIdActual ? 'playVideo (cantar/continuar)' : 'loadVideoById (cantar)',
+      video: videoIdActual,
+    });
     try {
       if (reanudando || !videoIdActual) {
         playerRef.current.playVideo();
@@ -610,6 +714,7 @@ export default function KaraokeStage({
     // Se cuenta solo la pausa explícita del cantante. Una pausa publicitaria no
     // genera este evento porque no pasa por nuestros controles.
     telemetriaRef.current.pausas += 1;
+    diag('app_orden', { accion: 'pauseVideo (botón Pausar)', video: videoIdRef.current });
     try {
       playerRef.current?.pauseVideo();
     } catch {
@@ -808,6 +913,8 @@ export default function KaraokeStage({
               </div>
             )}
           </div>
+          {/* Solo con ?debug=1. Va en el flujo, debajo de los controles: nunca sobre el video. */}
+          <PanelDiagnostico />
           {pie}
         </div>
 
