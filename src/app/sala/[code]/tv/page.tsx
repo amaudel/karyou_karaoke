@@ -25,6 +25,21 @@ export const dynamic = 'force-dynamic';
 
 type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ceremonia?:string}> };
 
+/**
+ * El enlace de una sala no cambia, así que su QR tampoco: no hace falta regenerar el
+ * PNG en cada refresco de la TV. Caché por proceso, acotada.
+ */
+const cacheQr = new Map<string, string>();
+async function qrDeEnlace(enlace: string): Promise<string> {
+  const guardado = cacheQr.get(enlace);
+  if (guardado) return guardado;
+  // PNG en datos, no SVG embebido: evita inyectar HTML generado.
+  const png = await QRCode.toDataURL(enlace, { margin: 1, width: 260 });
+  if (cacheQr.size >= 50) cacheQr.clear();
+  cacheQr.set(enlace, png);
+  return png;
+}
+
 /** Cuánto tiempo se considera «recién salido» un resultado. Gobierna la animación. */
 const SEGUNDOS_RECIENTE = 45;
 
@@ -65,34 +80,50 @@ async function renderPantallaPage({ params, searchParams }: Props) {
     );
   }
 
-  const estado = (await estadoSesion(code, sesion)) as EstadoVista | null;
+  const enlace = urlSala(code);
+  // Lo que no depende del estado de la cola sale a la vez que él: con Turso cada
+  // consulta es un viaje de red y encadenarlas suma sus latencias. `sesion.modo` es
+  // el mismo valor que `estado.modo`.
+  const [estadoCrudo, crudoResultado, rankingCrudo, rankingMesasCrudo, promocionesCrudo, qr] = await Promise.all([
+    estadoSesion(code, sesion),
+    ultimoResultado(sesion.id),
+    rankingDeSesion(sesion.id),
+    sesion.modo === 'bar' ? rankingMesasDeSesion(sesion.id) : Promise.resolve([]),
+    sesion.modo === 'bar' ? promocionesDeSala(sesion.id) : Promise.resolve([]),
+    qrDeEnlace(enlace),
+  ]);
+  const estado = estadoCrudo as EstadoVista | null;
   if (!estado) notFound();
+  const ranking = rankingCrudo as FilaRankingVista[];
+  const rankingMesas = rankingMesasCrudo as FilaMesaVista[];
+  const promociones = promocionesCrudo as PromocionBar[];
 
-  const crudo = (await ultimoResultado(sesion.id)) as (ResultadoVista & { segundos: number }) | null;
+  const crudo = crudoResultado as (ResultadoVista & { segundos: number }) | null;
   // Solo se revela un resultado recién salido. Si no, cada recarga de la tele
   // repetiría la animación de una nota de hace media hora.
   const resultadoReciente = Boolean(crudo && crudo.segundos < SEGUNDOS_RECIENTE);
   const detalle = (() => { try { return JSON.parse(crudo?.detail || '{}'); } catch { return {}; } })();
-  const resultado: ResultadoVista | null = resultadoReciente && crudo ? {
-    ...crudo,
-    revanchaAnterior: detalle.perfil === 'revancha'
-      ? await notaAnteriorRevancha(sesion.id, crudo.participant_id, crudo.id) : null,
-  } : null;
-  const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
-  const rankingMesas = estado.modo === 'bar' ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
-  const aplausos = estado.sonando ? await contarAplausos(estado.sonando.id) : 0;
   const oyentes = estado.participantes?.length ?? 0;
-  const promociones = estado.modo === 'bar' ? await promocionesDeSala(sesion.id) as PromocionBar[] : [];
-
-  const enlace = urlSala(code);
-  // PNG en datos, no SVG embebido: evita inyectar HTML generado.
-  const qr = await QRCode.toDataURL(enlace, { margin: 1, width: 260 });
 
   // Lo que se carga en el reproductor: lo que está sonando o, si nadie canta, la
   // primera de la cola, ya preparada.
   const enTurno = estado.sonando ?? estado.esperando[0] ?? null;
-  const tieneRevancha = Boolean(enTurno && sesion.status !== 'finished' &&
-    await revanchaPendiente(sesion.id, enTurno.participant_id));
+
+  // Segundo grupo: estas tres dependen de la cola y del último resultado.
+  const [aplausos, revancha, revanchaAnterior] = await Promise.all([
+    estado.sonando ? contarAplausos(estado.sonando.id) : Promise.resolve(0),
+    enTurno && sesion.status !== 'finished'
+      ? revanchaPendiente(sesion.id, enTurno.participant_id)
+      : Promise.resolve(false),
+    resultadoReciente && crudo && detalle.perfil === 'revancha'
+      ? notaAnteriorRevancha(sesion.id, crudo.participant_id, crudo.id)
+      : Promise.resolve(null),
+  ]);
+  const resultado: ResultadoVista | null = resultadoReciente && crudo ? {
+    ...crudo,
+    revanchaAnterior: detalle.perfil === 'revancha' ? revanchaAnterior : null,
+  } : null;
+  const tieneRevancha = Boolean(revancha);
 
   if (sesion.status === 'finished') {
     return <div data-espectaculo={sesion.espectaculo} className="karyou-tv-fx"><PodioFinal code={code} modo={estado.modo} ranking={ranking} rankingMesas={rankingMesas} /></div>;

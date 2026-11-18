@@ -31,15 +31,21 @@ export default async function ControlSala({ params, searchParams }: { params: Pr
     jar.get('karyou_bar_owner')?.value,
   );
   if (!autorizado) notFound();
-  const estado = (await estadoSesion(code)) as EstadoVista | null;
+  const tokenDuenio = jar.get('karyou_bar_owner')?.value;
+  // Consultas independientes en un solo grupo: con Turso cada una es un viaje de red.
+  const [estadoCrudo, rankingCrudo, mesasCrudo, { error }, propietario] = await Promise.all([
+    estadoSesion(code, sesion),
+    rankingDeSesion(sesion.id),
+    sesion.modo === 'bar' ? rankingMesasDeSesion(sesion.id) : Promise.resolve([]),
+    searchParams,
+    sesion.modo === 'bar' ? propietarioDeSala(sesion.id, tokenDuenio) : Promise.resolve(null),
+  ]);
+  const estado = estadoCrudo as EstadoVista | null;
   if (!estado) notFound();
-  const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
-  const mesas = sesion.modo === 'bar'
-    ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
+  const ranking = rankingCrudo as FilaRankingVista[];
+  const mesas = mesasCrudo as FilaMesaVista[];
   const enPantalla = estado.sonando ?? estado.esperando[0] ?? null;
-  const {error} = await searchParams;
-  const tokenDuenio = (await cookies()).get('karyou_bar_owner')?.value;
-  const puedeOmitir = sesion.modo === 'bar' && Boolean(await propietarioDeSala(sesion.id, tokenDuenio));
+  const puedeOmitir = sesion.modo === 'bar' && Boolean(propietario);
   const pendientes = estado.sonando ? estado.esperando : estado.esperando.slice(1);
 
   return (

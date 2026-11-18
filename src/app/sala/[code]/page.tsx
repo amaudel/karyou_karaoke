@@ -164,26 +164,35 @@ async function renderSalaPage({ params, searchParams }: Props) {
   }
 
   /* ------------------------------------------------------------ ya dentro */
-  const estado = (await estadoSesion(code, sesion)) as EstadoVista | null;
+  const viendoFavoritos = consulta.toLowerCase() === 'favoritos';
+  const pareceUrlYoutube = /(?:https?:\/\/|youtu\.be\/|youtube\.com\/)/i.test(consulta);
+
+  // Todo lo que no depende del estado de la cola sale a la vez que él: con Turso
+  // cada consulta es un viaje de red, y encadenarlas suma sus latencias.
+  const [estadoCrudo, resultadosCrudos, totalBusqueda, rankingCrudo, rankingMesasCrudo, tengoRevancha] =
+    await Promise.all([
+      estadoSesion(code, sesion),
+      viendoFavoritos
+        ? listarFavoritos(60)
+        : consulta
+          ? searchPool(consulta, POR_PAGINA, (pagina - 1) * POR_PAGINA)
+          : Promise.resolve([]),
+      !viendoFavoritos && consulta ? contarPool(consulta) : Promise.resolve(0),
+      rankingDeSesion(sesion.id),
+      sesion.modo === 'bar' ? rankingMesasDeSesion(sesion.id) : Promise.resolve([]),
+      revanchaPendiente(sesion.id, quien.participante.id),
+    ]);
+  const estado = estadoCrudo as EstadoVista | null;
   if (!estado) notFound();
+  const resultados = resultadosCrudos as Awaited<ReturnType<typeof searchPool>>;
+  const ranking = rankingCrudo as FilaRankingVista[];
+  const rankingMesas = rankingMesasCrudo as FilaMesaVista[];
 
   const limiteSala = estado.limitePendientes ?? LIMITE_PENDIENTES;
   const esModoBar = estado.modo === 'bar';
   const celebracionBloqueada = estado.celebracionRestanteMs > 0;
 
-  const viendoFavoritos = consulta.toLowerCase() === 'favoritos';
-  const pareceUrlYoutube = /(?:https?:\/\/|youtu\.be\/|youtube\.com\/)/i.test(consulta);
-
-  const resultados = viendoFavoritos
-    ? await listarFavoritos(60)
-    : consulta
-      ? await searchPool(consulta, POR_PAGINA, (pagina - 1) * POR_PAGINA)
-      : [];
-  const total = viendoFavoritos
-    ? resultados.length
-    : consulta
-      ? await contarPool(consulta)
-      : 0;
+  const total = viendoFavoritos ? resultados.length : totalBusqueda;
   const desde = viendoFavoritos ? 1 : (pagina - 1) * POR_PAGINA + 1;
   const hasta = viendoFavoritos
     ? resultados.length
@@ -196,9 +205,12 @@ async function renderSalaPage({ params, searchParams }: Props) {
   const siguienteTurno = estado.esperando[0] ?? null;
   const siguienteEsMio = siguienteTurno?.participant_id === quien.participante.id;
 
-  const aplausos = estado.sonando ? await contarAplausos(estado.sonando.id) : 0;
-  const yaAplaudi =
-    estado.sonando && (await yaAplaudio(estado.sonando.id, quien.participante.id));
+  const [aplausos, yaAplaudi] = estado.sonando
+    ? await Promise.all([
+        contarAplausos(estado.sonando.id),
+        yaAplaudio(estado.sonando.id, quien.participante.id),
+      ])
+    : [0, null];
   const esMia = estado.sonando?.participant_id === quien.participante.id;
   const enTurnoTV = estado.sonando ?? estado.esperando[0] ?? null;
   const esMiTurnoEnTV = Boolean(enTurnoTV && enTurnoTV.participant_id === quien.participante.id);
@@ -211,10 +223,7 @@ async function renderSalaPage({ params, searchParams }: Props) {
     1,
     SEGUNDOS_DESBLOQUEO_BAR - (estado.segundosEnPantalla ?? 0),
   );
-  const ranking = (await rankingDeSesion(sesion.id)) as FilaRankingVista[];
-  const rankingMesas = sesion.modo === 'bar' ? (await rankingMesasDeSesion(sesion.id)) as FilaMesaVista[] : [];
   const miPuesto = ranking.find((r) => r.participant_id === quien.participante.id);
-  const tengoRevancha = await revanchaPendiente(sesion.id, quien.participante.id);
 
   return (
     <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-purple-900/40 bg-gradient-to-b from-[#0c071e] via-[#110a28] to-[#070312] p-3.5 sm:p-8 pb-12 text-white shadow-2xl">
